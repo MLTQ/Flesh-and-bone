@@ -20,9 +20,17 @@ that transfer is learned differentiation.
 - **Does**: Uses 6-connectivity to count occupied components and empty
   components not connected to the grid boundary.
 
+### `closest_surface_uv`
+- **Does**: Projects every volume cell to its closest source triangle and
+  barycentrically interpolates that triangle's three corner UVs.
+- **Rationale**: Nearest-vertex UV transfer caps texture detail at source vertex
+  density and averages across seams; denser cells must sample continuous
+  triangle UVs to reveal rather than repeat texture information.
+
 ### `build_h4_volume`
 - **Does**: Surface-voxelizes and flood-fills at configured pitch, transfers
-  nearest-vertex UV/top-k skin state, and records topology/thickness metrics.
+  closest-triangle UV plus nearest-vertex top-k skin state, and records
+  topology/thickness metrics.
   The configured base splat-radius scale is included in the maximum world-radius
   evidence rather than duplicated in the renderer.
 - **Rationale**: Voxel filling tolerates the source's small boundary and
@@ -38,8 +46,9 @@ that transfer is learned differentiation.
 | H4 experiment | Metadata contains cell/connectivity/thickness/splat gates | Key semantics |
 | Animated volume | Weights use the rig asset's exact bone order | Bone reordering |
 | Future developmental trainer | Points are canonical rest targets, not preanimated coordinates | Point semantics |
+| Texture renderer | UVs retain source triangle seams and continuous barycentric detail | UV transfer semantics |
 
 ## Notes
 
-Nearest-surface weight and UV transfer is an initialization oracle. Future
-learned cells must infer analogous state from developmental signals.
+Nearest-surface weight and barycentric UV transfer are initialization oracles.
+Future learned cells must infer analogous state from developmental signals.

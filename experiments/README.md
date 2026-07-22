@@ -192,6 +192,33 @@ further same-motion density sweep is now less informative than frozen-rule
 tests on unseen accelerations, followed by density/contact mechanics. See
 [`H5D.md`](H5D.md).
 
+## H5U — ultra-dense overlapping splats
+
+**Question:** Can the system reach roughly 92k cells and remove the visible
+grid/see-through artifact without sacrificing learned dynamics or blurring away
+recognizable surface detail?
+
+**Visual diagnosis:** More cells alone repeated nearest-vertex UV colors and
+could not create facial or clothing detail. H5U switches to closest-triangle
+barycentric UVs, freezes a `0.50 x pitch` radius after an explicit sweep,
+raises opacity to 0.72, and renders at 720 px. The corrected character is
+opaque and recognizable across the walk.
+
+**Protocol:** The 12.5 mm volume contains 91,979 cells (`6.930x` H5). Coupling
+scales to 1200 and batch size to 56,832; model size and optimizer steps remain
+fixed. The historical H4 gate fails only its intentional 50k resource ceiling.
+Seed 7 qualifies without tuning, then all seeds rerun from scratch.
+
+**Status:** complete. Seeds 7, 19, and 31 pass. Rollout RMS is
+0.369-0.418 mm, p99 is 1.491-1.638 mm, maximum is 16.649-18.593 mm, and median
+RMS improves 26.3% over H5. Neighbor blindness is 4.66-5.31x worse in position
+and 8.16-9.10x worse in edge strain.
+
+**Decision:** keep the ultra-dense volume, barycentric UV transfer, and
+overlapping render. The former sparse appearance was a representation/render
+transfer problem, not failed mechanics. Pause GPU scaling here; test the frozen
+rule on unseen motion next. See [`H5U.md`](H5U.md).
+
 ## Interpretation discipline
 
 - H0 validates mechanics and instrumentation, not neural self-organization.
@@ -217,3 +244,5 @@ tests on unseen accelerations, followed by density/contact mechanics. See
   biological realism or cross-motion generalization.
 - H5D establishes discretization scaling on that same body and walk. More cells
   do not convert a same-trajectory distillation result into generalization.
+- H5U's appearance improvement combines density, barycentric texture transfer,
+  overlap, opacity, and resolution; it must not be attributed to density alone.

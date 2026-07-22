@@ -34,10 +34,12 @@ class H5Config:
     device: str = "cpu"
     image_size: int = 480
     render_seed: int = 7
+    render_splat_radius_scale: float = 0.30
+    render_opacity: float = 0.52
 
 
 def _render_seed(output, asset, volume, trajectory, rollout, seed, archive_path,
-                 image_size):
+                 image_size, splat_radius_scale, opacity):
     texture = load_base_color(archive_path)
     colors = sample_texture(texture, volume.uv.cpu().numpy())
     teacher_residual = trajectory.residual[:, 0]
@@ -50,10 +52,10 @@ def _render_seed(output, asset, volume, trajectory, rollout, seed, archive_path,
             .cpu().numpy(),
             colors,
             bones,
-            splat_radius=0.30 * volume.metadata["pitch"],
+            splat_radius=splat_radius_scale * volume.metadata["pitch"],
             splat_scale=volume.splat_scale.cpu().numpy(),
             size=image_size,
-            opacity=0.52,
+            opacity=opacity,
             label=f"teacher seed {seed} phase {phase:02d}",
         ))
         learned_frames.append(render_colored_splats(
@@ -61,10 +63,10 @@ def _render_seed(output, asset, volume, trajectory, rollout, seed, archive_path,
             .cpu().numpy(),
             colors,
             bones,
-            splat_radius=0.30 * volume.metadata["pitch"],
+            splat_radius=splat_radius_scale * volume.metadata["pitch"],
             splat_scale=volume.splat_scale.cpu().numpy(),
             size=image_size,
-            opacity=0.52,
+            opacity=opacity,
             label=f"learned seed {seed} phase {phase:02d}",
         ))
     save_gif(teacher_frames, output / "teacher_animation.gif")
@@ -87,16 +89,16 @@ def _render_seed(output, asset, volume, trajectory, rollout, seed, archive_path,
         teacher_exaggerated.append(render_colored_splats(
             (trajectory.lbs_positions[phase] + 4 * teacher_residual[phase])
             .cpu().numpy(), colors, bones,
-            splat_radius=0.30 * volume.metadata["pitch"],
+            splat_radius=splat_radius_scale * volume.metadata["pitch"],
             splat_scale=volume.splat_scale.cpu().numpy(), size=image_size,
-            opacity=0.52, label=f"teacher residual 4x phase {phase:02d}",
+            opacity=opacity, label=f"teacher residual 4x phase {phase:02d}",
         ))
         learned_exaggerated.append(render_colored_splats(
             (trajectory.lbs_positions[phase] + 4 * learned_residual[phase])
             .cpu().numpy(), colors, bones,
-            splat_radius=0.30 * volume.metadata["pitch"],
+            splat_radius=splat_radius_scale * volume.metadata["pitch"],
             splat_scale=volume.splat_scale.cpu().numpy(), size=image_size,
-            opacity=0.52, label=f"learned residual 4x phase {phase:02d}",
+            opacity=opacity, label=f"learned residual 4x phase {phase:02d}",
         ))
     save_contact_sheet(
         teacher_exaggerated,
@@ -145,7 +147,7 @@ def run_h5(output_directory, config=None, teacher_config=None,
             trajectory,
             volume,
             graph,
-            config.image_size,
+            teacher_config,
             cycles=training_config.rollout_cycles,
             neighbor_enabled=True,
         )
@@ -204,7 +206,9 @@ def run_h5(output_directory, config=None, teacher_config=None,
             learned_cpu,
             seed,
             config.archive_path,
-            teacher_config,
+            config.image_size,
+            config.render_splat_radius_scale,
+            config.render_opacity,
         )
     aggregate_pass = all(run["acceptance"]["pass"] for run in runs)
     report = {

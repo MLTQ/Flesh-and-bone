@@ -9,10 +9,13 @@ and renders actual plus explicitly magnified secondary motion.
 ## Components
 
 ### `H5Config`
-- **Does**: Records H4 inputs, frozen seeds/device, and which seed receives
-  visual artifacts.
+- **Does**: Records H4 inputs, frozen seeds/device, which seed receives visual
+  artifacts, and explicit radius/opacity rendering controls.
 - **Contract**: `image_size` controls every normal and exaggerated render; the
   renderer does not silently substitute a fixed resolution.
+- **Rationale**: Cell density and visual overlap are separate variables. A
+  denser grid must not silently retain H5's intentionally sparse `0.30 × pitch`
+  evidence style.
 
 ### `run_h5`
 - **Does**: Builds one deterministic teacher/graph, trains each seed, rolls the

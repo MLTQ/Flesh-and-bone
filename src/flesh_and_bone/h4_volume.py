@@ -10,7 +10,7 @@ from scipy.spatial import cKDTree
 import torch
 import trimesh
 
-from .rig_asset import averaged_vertex_uv, normalized_topk_weights
+from .rig_asset import normalized_topk_weights
 
 
 @dataclass(frozen=True)
@@ -72,6 +72,20 @@ def occupancy_components(matrix):
     }
 
 
+def closest_surface_uv(surface, points, corner_uv):
+    """Project points to triangles and barycentrically interpolate corner UVs."""
+    closest, distance, triangle = trimesh.proximity.closest_point(
+        surface, points
+    )
+    selected_triangles = surface.triangles[triangle]
+    barycentric = trimesh.triangles.points_to_barycentric(
+        selected_triangles, closest
+    )
+    selected_uv = np.asarray(corner_uv)[triangle]
+    uv = (selected_uv * barycentric[..., None]).sum(axis=1)
+    return uv, distance, triangle
+
+
 def build_h4_volume(asset, pitch=0.025, influence_count=6,
                     splat_radius_scale=0.30):
     """Voxel-fill the imperfect source surface and transfer nearby state."""
@@ -86,13 +100,16 @@ def build_h4_volume(asset, pitch=0.025, influence_count=6,
     components = occupancy_components(matrix)
 
     tree = cKDTree(vertices)
-    nearest_distance, nearest = tree.query(points, k=1, workers=-1)
+    _, nearest = tree.query(points, k=1, workers=-1)
     source_weights, retained = normalized_topk_weights(
         asset.weights, influence_count
     )
     weights = source_weights.detach().cpu().numpy()[nearest]
-    vertex_uv = averaged_vertex_uv(asset).detach().cpu().numpy()
-    uv = vertex_uv[nearest]
+    uv, nearest_distance, _ = closest_surface_uv(
+        surface,
+        points,
+        asset.corner_uv.detach().cpu().numpy(),
+    )
     dominant = weights.argmax(axis=1)
     bone_distance = point_segment_distance(
         points, asset.rest_bone_endpoints.detach().cpu().numpy()
@@ -114,6 +131,7 @@ def build_h4_volume(asset, pitch=0.025, influence_count=6,
         "surface_winding_consistent": bool(surface.is_winding_consistent),
         "nearest_surface_distance_mean": float(nearest_distance.mean()),
         "nearest_surface_distance_max": float(nearest_distance.max()),
+        "uv_transfer": "closest-triangle-barycentric",
         "weight_sum_max_error": float(np.abs(weights.sum(axis=1) - 1).max()),
         "source_retained_weight_mean": float(retained.mean().item()),
         "occupied_component_count": components["occupied_component_count"],

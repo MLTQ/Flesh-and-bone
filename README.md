@@ -237,6 +237,21 @@ three-seed pass. Median rollout RMS improves 17.6% to 0.423 mm; p99 is
 only 2.08x for 2.68x as many cells, and each checkpoint remains about 48 KiB.
 See [`experiments/H5D.md`](experiments/H5D.md).
 
+## Experiment H5U: ultra-dense overlapping splats
+
+H5U increases the volume to 91,979 cells at 12.5 mm pitch. A visual ablation
+showed that density alone could not recover detail because H4 copied UV color
+from only 4,759 nearest vertices. Closest-triangle barycentric UV transfer now
+samples continuous texture coordinates, while radius increases from `0.30` to
+`0.50 x pitch`, opacity from 0.52 to 0.72, and evidence resolution from 480 to
+720 px.
+
+The character becomes opaque and recognizable rather than a see-through grid.
+All mechanics gates pass on seeds 7, 19, and 31: median rollout RMS is
+0.378 mm, p99 is 1.491-1.638 mm, and maximum is 16.649-18.593 mm. The same
+~48 KiB rule is 26.3% more accurate than H5 despite 6.93x as many cells. See
+[`experiments/H5U.md`](experiments/H5U.md).
+
 ## Repository layout
 
 ```text
@@ -286,9 +301,11 @@ uses deterministic seeds and records the resolved configuration in its JSON.
    neighbor-message control.
 7. **H5D — high-density scaling (complete):** increase the same body to 35,527
    cells while preserving the physical regime and learned-rule accuracy.
-8. **H6 — pose/edge MoE:** pose experts stabilize tissue states; directed edge
+8. **H5U — ultra-dense appearance (complete):** increase to 91,979 cells,
+   transfer continuous triangle UVs, and remove the sparse see-through lattice.
+9. **H6 — pose/edge MoE:** pose experts stabilize tissue states; directed edge
    experts control difficult skeletal transitions under a hard global guide.
-9. **H7 — scale:** bootstrap a 64³-equivalent splat creature from a mature,
+10. **H7 — scale:** bootstrap a 64³-equivalent splat creature from a mature,
    validated 32³-equivalent state rather than relearning assembly and animation
    simultaneously.
 

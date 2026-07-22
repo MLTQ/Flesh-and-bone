@@ -22,12 +22,24 @@ def main():
     parser.add_argument("--steps", type=int)
     parser.add_argument("--batch-size", type=int)
     parser.add_argument("--neighbor-coupling", type=float)
+    parser.add_argument("--image-size", type=int)
+    parser.add_argument("--render-splat-radius-scale", type=float)
+    parser.add_argument("--render-opacity", type=float)
     args = parser.parse_args()
     config = replace(
         H5Config(), device=args.device, seeds=tuple(args.seeds)
     )
     if args.volume:
         config = replace(config, volume_path=args.volume)
+    if args.image_size is not None:
+        config = replace(config, image_size=args.image_size)
+    if args.render_splat_radius_scale is not None:
+        config = replace(
+            config,
+            render_splat_radius_scale=args.render_splat_radius_scale,
+        )
+    if args.render_opacity is not None:
+        config = replace(config, render_opacity=args.render_opacity)
     training = FleshTrainingConfig()
     if args.steps is not None:
         training = replace(training, steps=args.steps)
