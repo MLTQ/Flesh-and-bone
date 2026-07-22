@@ -138,6 +138,37 @@ construction, not flesh mechanics. H5 should generate a soft-tissue teacher
 driven by the imported bones and learn local residual forces relative to the
 measured LBS baseline. See [`H4.md`](H4.md).
 
+## H5 — separately taught local flesh mechanics
+
+**Question:** Can one shared local particle-message rule learn stable secondary
+motion from an explicit graph-elastic teacher instead of incorrectly treating
+the imported LBS walk as flesh ground truth?
+
+**Arms:** A warmed periodic graph-elastic teacher provides the curriculum. The
+learned arm free-runs autoregressively for three cycles. LBS-only supplies the
+zero-residual baseline, while a neighbor-blind rollout zeros only the two local
+message vectors in the same checkpoint.
+
+**Trial history:** The first frozen 1,200-step run failed honestly: seed 31 had
+a 44.71 mm worst-cell error against the 40 mm gate, localized to one rare
+degree-2 soft-surface cell. Seeds 7 and 19 otherwise passed. The threshold and
+teacher were not changed. Doubling exposure to 2,400 steps reduced seed 7's
+permitted tuning maximum from 30.32 to 16.81 mm, after which the configuration
+was frozen and all seeds rerun.
+
+**Status:** complete. Seeds 7, 19, and 31 all pass. Three-cycle learned error is
+0.478-0.528 mm RMS, 1.879-2.178 mm p99, and 16.051-19.619 mm maximum. Cycle
+drift remains below 0.500 mm and the learned rule removes 97.69-97.90% of the
+LBS-only error. The neighbor-blind control is 3.88-4.19x worse in position and
+5.31-5.89x worse in edge strain.
+
+**Decision:** retain the local message architecture and its explicit-teacher
+workflow. This demonstrates stable distillation and causal use of local
+transport on one body/walk, not biological accuracy or generalization. The
+next mechanics test should freeze the rule under novel accelerations before
+introducing density, contact, incompressibility, or muscle curricula. See
+[`H5.md`](H5.md).
+
 ## Interpretation discipline
 
 - H0 validates mechanics and instrumentation, not neural self-organization.
@@ -158,3 +189,6 @@ measured LBS baseline. See [`H4.md`](H4.md).
   distillation and tested with a shortage-blind causal control.
 - A linearly skinned animation validates rig transport but contains no target
   elasticity or secondary motion. H4 must not be cited as learned flesh.
+- A graph-elastic teacher is a synthetic curriculum, not measured human tissue.
+  H5 may be cited as stable local-rule distillation on one body and walk, not as
+  biological realism or cross-motion generalization.

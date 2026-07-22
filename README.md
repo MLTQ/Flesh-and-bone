@@ -203,6 +203,26 @@ torso, cheek, pelvic, and gluteal volume instead of bone-centered capsules. See
 H4 remains a kinematic baseline: nearest-surface state transfer is privileged,
 and the source animation contains no elasticity or secondary flesh motion.
 
+## Experiment H5: separately taught local flesh mechanics
+
+H5 adds an explicit, under-damped graph-elastic teacher around H4's exact LBS
+trajectory, then distills it into one shared 17-input local message MLP. The
+rule sees residual position/velocity, skeleton acceleration, bone distance,
+local stiffness, and mean six-neighbor residual/velocity differences; it never
+sees cell identity, bone identity, phase, or a target position.
+
+The final 2,400-step configuration passes every gate on seeds 7, 19, and 31.
+Three-cycle free-rollout error is 0.478-0.528 mm RMS, 1.879-2.178 mm p99, and
+16.051-19.619 mm maximum. Removing only the neighbor messages makes positional
+error about 4x worse and edge-strain error 5.3-5.9x worse, demonstrating that
+local transport is causally used. An earlier 1,200-step frozen run is retained
+as a failure because one rare degree-2 surface cell exceeded the maximum-error
+gate; the gate was not relaxed. See [`experiments/H5.md`](experiments/H5.md).
+
+H5 teaches a controlled synthetic elastic behavior, not anatomy. Novel-motion,
+novel-body, density, collision, incompressibility, and muscle behavior remain
+open curricula.
+
 ## Repository layout
 
 ```text
@@ -226,6 +246,7 @@ python scripts/run_h1.py --device cpu --arm all
 python scripts/run_h2.py --device cpu --arm all
 python scripts/run_h3.py --device cpu --arm all
 python scripts/run_h4.py
+python scripts/run_h5.py --device cuda
 ```
 
 Apple Silicon can use `--device mps`; CUDA can use `--device cuda`. The runner
@@ -246,9 +267,9 @@ uses deterministic seeds and records the resolved configuration in its JSON.
    variable splats, extra-skeletal tissue, and a learned global fate scorer.
 5. **H4 — production human target (complete):** import a 24-bone rig, validate
    six-weight surface transport, and build a fine variable-thickness volume.
-6. **H5 — learned local flesh:** drive a soft-tissue teacher from the H4 bones,
-   then learn elasticity, density response, collisions, and secondary motion as
-   local residuals over the exact LBS baseline.
+6. **H5 — learned local flesh (complete):** drive a graph-elastic teacher from
+   the H4 bones and distill stable local secondary motion with a causal
+   neighbor-message control.
 7. **H6 — pose/edge MoE:** pose experts stabilize tissue states; directed edge
    experts control difficult skeletal transitions under a hard global guide.
 8. **H7 — scale:** bootstrap a 64³-equivalent splat creature from a mature,
