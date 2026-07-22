@@ -223,6 +223,20 @@ H5 teaches a controlled synthetic elastic behavior, not anatomy. Novel-motion,
 novel-body, density, collision, incompressibility, and muscle behavior remain
 open curricula.
 
+## Experiment H5D: high-density scaling
+
+H5D reduces pitch to 17.5 mm, increasing the population from 13,273 to 35,527
+cells while leaving the shared rule at the same parameter count. Graph coupling
+is scaled by inverse pitch squared to preserve continuum stiffness, and batch
+size is scaled with population to preserve per-cell exposure.
+
+The first seed-7 qualification passes without tuning, followed by a clean
+three-seed pass. Median rollout RMS improves 17.6% to 0.423 mm; p99 is
+1.612-1.827 mm and maximum error is 13.810-20.278 mm. The neighbor-blind arm is
+4.3-4.9x worse in position and 6.8-7.5x worse in edge strain. Runtime grows
+only 2.08x for 2.68x as many cells, and each checkpoint remains about 48 KiB.
+See [`experiments/H5D.md`](experiments/H5D.md).
+
 ## Repository layout
 
 ```text
@@ -270,9 +284,11 @@ uses deterministic seeds and records the resolved configuration in its JSON.
 6. **H5 — learned local flesh (complete):** drive a graph-elastic teacher from
    the H4 bones and distill stable local secondary motion with a causal
    neighbor-message control.
-7. **H6 — pose/edge MoE:** pose experts stabilize tissue states; directed edge
+7. **H5D — high-density scaling (complete):** increase the same body to 35,527
+   cells while preserving the physical regime and learned-rule accuracy.
+8. **H6 — pose/edge MoE:** pose experts stabilize tissue states; directed edge
    experts control difficult skeletal transitions under a hard global guide.
-8. **H7 — scale:** bootstrap a 64³-equivalent splat creature from a mature,
+9. **H7 — scale:** bootstrap a 64³-equivalent splat creature from a mature,
    validated 32³-equivalent state rather than relearning assembly and animation
    simultaneously.
 

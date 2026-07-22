@@ -169,6 +169,29 @@ next mechanics test should freeze the rule under novel accelerations before
 introducing density, contact, incompressibility, or muscle curricula. See
 [`H5.md`](H5.md).
 
+## H5D — high-density local flesh scaling
+
+**Question:** Does H5 remain stable when the same body is discretized with
+materially more and smaller cells?
+
+**Protocol:** Pitch falls from 25 mm to 17.5 mm, producing 35,527 cells
+(`2.677x` H5). Graph coupling scales by inverse pitch squared, from 300 to
+612.2449, to preserve continuum stiffness. Batch size scales from 8,192 to
+22,016 while optimizer steps and all H5 gates remain fixed. Seed 7 qualifies
+the predeclared scaling once; seeds 7, 19, and 31 then rerun from scratch.
+
+**Status:** complete. Seed 7 passes without tuning and all final seeds pass.
+Rollout RMS is 0.406-0.468 mm, p99 is 1.612-1.827 mm, maximum is
+13.810-20.278 mm, and cycle drift stays below 0.431 mm. Median RMS improves
+17.6% from H5. The neighbor-blind control is 4.29-4.94x worse in position and
+6.85-7.51x worse in edge strain.
+
+**Decision:** retain the denser discretization and pitch-scaled coupling. The
+same 48 KiB shared rule scales to 2.68x the cells in 2.08x the wall time. A
+further same-motion density sweep is now less informative than frozen-rule
+tests on unseen accelerations, followed by density/contact mechanics. See
+[`H5D.md`](H5D.md).
+
 ## Interpretation discipline
 
 - H0 validates mechanics and instrumentation, not neural self-organization.
@@ -192,3 +215,5 @@ introducing density, contact, incompressibility, or muscle curricula. See
 - A graph-elastic teacher is a synthetic curriculum, not measured human tissue.
   H5 may be cited as stable local-rule distillation on one body and walk, not as
   biological realism or cross-motion generalization.
+- H5D establishes discretization scaling on that same body and walk. More cells
+  do not convert a same-trajectory distillation result into generalization.
