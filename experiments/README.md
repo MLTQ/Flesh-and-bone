@@ -327,6 +327,30 @@ temporal stress that must pass every original H7 gate. See [`H7D.md`](H7D.md).
 hybrids remain near `0.001 mm` and pass every original H7 gate. See
 [`H7D.md`](H7D.md).
 
+## H8 — cold-start nonperiodic streaming transfer
+
+**Question:** Do the frozen H7C mechanics still work from zero residual state on
+complete nonperiodic Kimodo clips, including a one-second settling hold, or did
+H7D depend on periodic warmup?
+
+**Protocol:** Two already-opened motions qualify the implementation at natural
+and 2x timing. Only after qualification passes are three fixed prompt/seed
+motions generated and evaluated at both speeds across H7C seeds 7, 19, and 31.
+LBS, the H6C density-blind backbone, the H7C hybrid, and the explicit teacher
+all begin cold. See [`H8.md`](H8.md).
+
+**Status:** complete; **pass**. All 18 sealed final combinations pass safety;
+five of six motion/timing variants are causally eligible. Across eligible arms,
+the worst seed reduces backbone position error by 96.01–99.80% and compression
+error by 92.06–99.80%. Final residual velocity is at most `4.00 mm/s` after the
+one-second hold.
+
+**Amendment:** The first qualification exposed a contradictory absolute
+far/near softness gate: it demanded a ratio absent from the explicit teacher.
+Before opening the final suite, that gate was changed to preserve the teacher
+profile within ±10%; the original failure is retained. No mechanics, prompt,
+seed, or other threshold changed.
+
 ## Interpretation discipline
 
 - H0 validates mechanics and instrumentation, not neural self-organization.
@@ -360,3 +384,6 @@ hybrids remain near `0.001 mm` and pass every original H7 gate. See
   diagnoses H6M's regression parameterization; it is not independent physics.
 - H6K's forward/return Kimodo cycle validates an external pose/retarget path,
   not arbitrary nonperiodic animation.
+- H8 validates cold-start transfer and settling on three sealed nonperiodic
+  Kimodo clips against the same synthetic teacher. It does not validate
+  biological tissue, changing neighbors, collision/contact flesh, or muscles.

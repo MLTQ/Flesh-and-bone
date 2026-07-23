@@ -301,6 +301,22 @@ stress of an already opened clip, not a second semantic holdout. See
 [`experiments/H7C.md`](experiments/H7C.md), and
 [`experiments/H7D.md`](experiments/H7D.md).
 
+## Experiment H8: cold-start nonperiodic streaming mechanics
+
+H8 removes H7D's periodic warmup. Every explicit teacher, density-blind
+backbone, and hybrid rollout begins with zero residual position and velocity,
+consumes a complete six-second Kimodo clip once, and then holds the final pose
+for one second to test settling. Each clip runs at natural speed and
+deterministic 2x temporal stress.
+
+After a two-motion qualification, three prompt/seed pairs fixed in advance were
+generated and evaluated across all three frozen H7C checkpoints. All 18 final
+clip/timing/checkpoint combinations pass. Five of six variants are causally
+eligible; their worst checkpoint reduces density-blind position error by
+96.01–99.80% and sampled compression error by 92.06–99.80%. Final residual
+velocity is at most `4.00 mm/s`. See [`experiments/H8.md`](experiments/H8.md)
+for the logged pre-final metric amendment, complete gates, and limitations.
+
 ## Repository layout
 
 ```text
@@ -334,6 +350,14 @@ python scripts/run_h7.py final --profile h7c --device cuda \
   --output experiments/runs/h7c_initial
 python scripts/run_h7d.py --device cuda
 python scripts/render_h7_comparison.py --device cuda
+python scripts/run_h8.py qualification --device cuda \
+  --motion standing_wave=path/to/retargeted_motion.npz \
+  --motion two_step=path/to/retargeted_motion.npz
+python scripts/run_h8.py final --device cuda \
+  --motion clean_walk=path/to/retargeted_motion.npz \
+  --motion side_sway=path/to/retargeted_motion.npz \
+  --motion quick_turn=path/to/retargeted_motion.npz
+python scripts/render_h8_comparison.py
 ```
 
 Apple Silicon can use `--device mps`; CUDA can use `--device cuda`. The runner
@@ -394,6 +418,9 @@ contract and thresholds.
 14. **H7D — frozen Kimodo excitation audit (complete):** show ecological
     stability on the untouched clip and full causal benefit at 2x temporal
     excitation without retraining.
+15. **H8 — cold-start nonperiodic streaming (complete):** pass three sealed
+    Kimodo motions at natural and 2x timing across all frozen density
+    checkpoints, including final-pose settling from a zero residual state.
 
 The project should reject the particle representation if stable density,
 negative-space preservation, and articulated tracking require effectively
