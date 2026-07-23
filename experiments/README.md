@@ -219,6 +219,53 @@ overlapping render. The former sparse appearance was a representation/render
 transfer problem, not failed mechanics. Pause GPU scaling here; test the frozen
 rule on unseen motion next. See [`H5U.md`](H5U.md).
 
+## H6M — frozen-rule motion generalization
+
+**Question:** Do the three frozen H5U rules implement a reusable local flesh
+law, or only the state manifold of the original 29-phase walk?
+
+**Protocol:** Replay calibrates the evaluator over ten cycles. Four predeclared
+novel forcing cycles—reverse, periodic half speed, periodic `1.526x` speed, and
+walk-then-hold—then run without changing checkpoint weights or normalization.
+Every motion gets a separately converged graph-elastic teacher, a neighbor-blind
+control, long-horizon rollout metrics, and frozen-feature z-shift diagnostics.
+
+**Status:** complete; strict aggregate **fail**. Half speed passes every seed,
+reverse remains low-RMS but misses rare-cell maximum gates, stop/dwell passes
+seeds 7 and 19, and `1.526x` destabilizes every MLP. Seed 31 also exposes a
+ten-cycle replay tail failure. Feature tails track forcing magnitude. See
+[`H6M.md`](H6M.md).
+
+## H6C — structure-preserving constitutive identification
+
+**Question:** Is H6M's fast-motion instability caused by missing local state or
+by an unconstrained MLP extrapolating a stable physical law?
+
+**Protocol:** Identify five shared coefficients on the same original-walk
+teacher states, freeze them, then rerun the exact H6M ten-cycle motion and
+neighbor-ablation suite. This is an explicit structural upper-bound control,
+not a claim that the synthetic teacher is real tissue.
+
+**Status:** complete; **pass**. The five coefficients recover the teacher to
+`5.48e-8` held-out NRMSE and every ten-cycle motion stays below `9.5e-8 m`
+maximum, including the failed fast arm. This localizes H6M's failure to
+unconstrained regression. See [`H6C.md`](H6C.md).
+
+## H6K — Kimodo ecological motion transfer
+
+**Question:** Do the temporal-forcing results survive a newly generated and
+retargeted skeleton motion?
+
+**Protocol:** Kimodo generates an in-place weight-shift/torso-twist clip;
+Archepelago retargets it onto the existing named Meshy rig; a 30-frame segment
+is palindrome-closed to 58 phases. Frozen H5U MLPs and the original-walk-fitted
+H6C rule then run the unchanged ten-cycle protocol with separate verdicts.
+
+**Status:** complete; all three bridge/MLP/constitutive verdicts **pass**. Frozen
+MLPs reach `0.108–0.159 mm` RMS and under `3.5 mm` maximum. Kimodo feature
+magnitudes are far below the failed fast arm, showing that new pose semantics
+generalize when acceleration remains supported. See [`H6K.md`](H6K.md).
+
 ## Interpretation discipline
 
 - H0 validates mechanics and instrumentation, not neural self-organization.
@@ -246,3 +293,9 @@ rule on unseen motion next. See [`H5U.md`](H5U.md).
   do not convert a same-trajectory distillation result into generalization.
 - H5U's appearance improvement combines density, barycentric texture transfer,
   overlap, opacity, and resolution; it must not be attributed to density alone.
+- H6M grants each frozen rule the novel teacher's converged phase-zero state.
+  Its verdict concerns vector-field generalization, not cold-start inference.
+- H6C's hypothesis class contains the graph-elastic teacher exactly. A pass
+  diagnoses H6M's regression parameterization; it is not independent physics.
+- H6K's forward/return Kimodo cycle validates an external pose/retarget path,
+  not arbitrary nonperiodic animation.

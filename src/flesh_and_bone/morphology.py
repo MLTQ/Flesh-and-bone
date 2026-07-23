@@ -34,7 +34,7 @@ class BodyPlan:
 def checker_at_points(points, origin, checker_size):
     """Evaluate the planar checker skin extruded through tissue thickness."""
     coordinate = torch.floor(
-        (points - origin[None]) / checker_size
+        (points - origin[None]) / checker_size + 1e-6
     ).to(torch.long)
     return coordinate[:, :2].sum(dim=1).remainder(2)
 

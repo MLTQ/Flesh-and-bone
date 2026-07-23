@@ -252,6 +252,29 @@ All mechanics gates pass on seeds 7, 19, and 31: median rollout RMS is
 ~48 KiB rule is 26.3% more accurate than H5 despite 6.93x as many cells. See
 [`experiments/H5U.md`](experiments/H5U.md).
 
+## Experiments H6M/H6C/H6K: motion generalization and stable mechanics
+
+H6M freezes the three H5U MLPs and tests ten-cycle replay, reverse, half-speed,
+`1.526x`, and walk-then-hold forcing. Half speed passes cleanly; reverse and
+stop/dwell are globally accurate but expose rare-cell tails; fast motion
+destabilizes every checkpoint. The failure correlates with acceleration moving
+well outside the original normalization support, and seed 31 also reveals a
+long-horizon replay outlier.
+
+H6C identifies five shared coefficients in a structure-preserving local basis
+from the same single walk. It recovers the synthetic teacher at `5.48e-8`
+held-out acceleration NRMSE and passes every ten-cycle motion essentially at
+floating-point error. This proves that the local state and graph contain the
+needed information; the free MLP's extrapolation is the failure.
+
+H6K then generates an independent Kimodo weight-shift/twist motion, retargets
+22 canonical roles onto the named Meshy rig, closes the skinning bridge at
+`2.38e-7`, and evaluates both rule families. All frozen MLPs pass at
+`0.108–0.159 mm` RMS because the new motion remains inside the learned forcing
+range; H6C also passes. See [`experiments/H6M.md`](experiments/H6M.md),
+[`experiments/H6C.md`](experiments/H6C.md), and
+[`experiments/H6K.md`](experiments/H6K.md).
+
 ## Repository layout
 
 ```text
@@ -276,6 +299,9 @@ python scripts/run_h2.py --device cpu --arm all
 python scripts/run_h3.py --device cpu --arm all
 python scripts/run_h4.py
 python scripts/run_h5.py --device cuda
+python scripts/run_h6m.py --device cuda
+python scripts/run_h6c.py --device cuda
+python scripts/run_h6k.py --device cuda
 ```
 
 Apple Silicon can use `--device mps`; CUDA can use `--device cuda`. The runner
@@ -303,11 +329,15 @@ uses deterministic seeds and records the resolved configuration in its JSON.
    cells while preserving the physical regime and learned-rule accuracy.
 8. **H5U — ultra-dense appearance (complete):** increase to 91,979 cells,
    transfer continuous triangle UVs, and remove the sparse see-through lattice.
-9. **H6 — pose/edge MoE:** pose experts stabilize tissue states; directed edge
-   experts control difficult skeletal transitions under a hard global guide.
-10. **H7 — scale:** bootstrap a 64³-equivalent splat creature from a mature,
-   validated 32³-equivalent state rather than relearning assembly and animation
-   simultaneously.
+9. **H6M — frozen motion generalization (complete, failed strictly):** localize
+   MLP instability to rare tails and high-forcing extrapolation.
+10. **H6C — constitutive identification (complete):** prove the same local
+    state generalizes when the rule preserves restoring/damping structure.
+11. **H6K — Kimodo ecological motion (complete):** validate generated pose,
+    canonical retarget, dense skinning, and supported-range MLP generalization.
+12. **H7 — bounded hybrid mechanics:** retain the stable constitutive backbone
+    and learn only a bounded residual against a richer contact/density/
+    incompressibility teacher.
 
 The project should reject the particle representation if stable density,
 negative-space preservation, and articulated tracking require effectively

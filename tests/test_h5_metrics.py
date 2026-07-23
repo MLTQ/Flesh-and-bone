@@ -2,7 +2,9 @@
 
 from copy import deepcopy
 
-from flesh_and_bone.h5_metrics import acceptance_h5
+import torch
+
+from flesh_and_bone.h5_metrics import acceptance_h5, flat_quantile
 
 
 def _passing_inputs():
@@ -51,3 +53,11 @@ def test_h5_acceptance_does_not_hide_a_maximum_error_outlier():
     result = acceptance_h5(teacher, training, learned, neighbor_blind)
     assert not result["rollout_max"]
     assert not result["pass"]
+
+
+def test_flat_quantile_matches_torch_linear_interpolation():
+    values = torch.tensor([9.0, 1.0, 4.0, 7.0, 2.0])
+    assert torch.allclose(
+        flat_quantile(values, 0.73),
+        torch.quantile(values, 0.73),
+    )

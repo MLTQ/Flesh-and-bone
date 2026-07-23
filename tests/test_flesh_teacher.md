@@ -10,3 +10,4 @@ difference convention without requiring the production volume.
 | Contract | Expected | Regression caught |
 |---|---|---|
 | Three-cell line | Degrees are 1/2/1 and endpoint messages point inward | Reversed edges or unnormalized accumulation |
+| Static periodic cycle | Central-difference acceleration is exactly zero | Open-boundary or time-scale error |

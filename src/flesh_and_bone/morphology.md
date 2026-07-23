@@ -14,7 +14,9 @@ attachment, target neighbor density, and two negative-space probes.
 
 ### `checker_at_points`
 - **Does**: Evaluates canonical X/Y checker phase at arbitrary material
-  coordinates and extrudes that phase through tissue thickness.
+  coordinates and extrudes that phase through tissue thickness. A dimensionless
+  `1e-6` boundary bias makes exact checker edges stable under rest-pose
+  embed/deform floating-point reconstruction.
 - **Rationale**: H1 plastic cells must read the same field used to label H0
   reference sites; duplicating parity math would let the contracts drift. A 3D
   parity volume is not a skin texture: depth layers occlude into speckles. For

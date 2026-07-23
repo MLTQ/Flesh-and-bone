@@ -111,19 +111,34 @@ def volume_lbs_cycle(asset, volume):
         )
         for index in range(unique_frames.shape[0])
     ], dim=0)
-    dt = 1.0 / float(asset.metadata["fps"])
-    acceleration = (
+    acceleration = periodic_acceleration(
+        positions, float(asset.metadata["fps"])
+    )
+    return positions, acceleration
+
+
+def periodic_acceleration(positions, fps):
+    """Central-difference acceleration for a uniformly sampled closed cycle."""
+    if positions.ndim != 3 or positions.shape[-1] != 3:
+        raise ValueError("positions must have shape [phases, cells, 3]")
+    if positions.shape[0] < 3:
+        raise ValueError("a periodic cycle needs at least three phases")
+    if fps <= 0:
+        raise ValueError("fps must be positive")
+    dt = 1.0 / float(fps)
+    return (
         torch.roll(positions, -1, dims=0)
         - 2 * positions
         + torch.roll(positions, 1, dims=0)
     ) / (dt * dt)
-    return positions, acceleration
 
 
-def simulate_teacher(asset, volume, graph, config=None):
-    """Warm to a limit cycle, then capture one cycle at every substep."""
+def simulate_teacher_from_lbs(lbs_positions, volume, graph, config=None):
+    """Converge and capture the teacher around an arbitrary periodic LBS cycle."""
     config = config or ElasticTeacherConfig()
-    lbs_positions, lbs_acceleration = volume_lbs_cycle(asset, volume)
+    if lbs_positions.shape[1:] != (volume.cell_count, 3):
+        raise ValueError("LBS cycle and volume cell shapes differ")
+    lbs_acceleration = periodic_acceleration(lbs_positions, config.fps)
     distance = (volume.bone_distance / config.softening_distance).clamp(0, 1)
     stiffness = (
         config.near_stiffness * (1 - distance)
@@ -186,4 +201,13 @@ def simulate_teacher(asset, volume, graph, config=None):
         stiffness=stiffness,
         final_residual=residual,
         final_velocity=velocity,
+    )
+
+
+def simulate_teacher(asset, volume, graph, config=None):
+    """Converge and capture the teacher around the rig asset's walk cycle."""
+    config = config or ElasticTeacherConfig()
+    lbs_positions, _ = volume_lbs_cycle(asset, volume)
+    return simulate_teacher_from_lbs(
+        lbs_positions, volume, graph, config=config
     )

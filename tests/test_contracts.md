@@ -21,3 +21,4 @@ a globally balanced but inverted checker.
 | H1 bone attachment | Contact-derived soft embedding reconstructs the cell position | Motion would tear committed material away from its scaffold coordinates |
 | H1 material maturation | Plastic phenotype follows the local body material field and stops changing after lock | Checker identity drifts or repaints during motion |
 | Checker evidence | Correct texture scores 1; inverted texture scores 0 | Histogram-only metrics masking spatial collapse |
+| Checker boundary stability | Rest embed/deform preserves parity at exact chart edges | Backend-dependent floor flips |

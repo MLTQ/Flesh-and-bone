@@ -1,6 +1,26 @@
 """H5 teacher, rollout, ablation, and acceptance measurements."""
 
+import math
+
 import torch
+
+
+def flat_quantile(values, quantile):
+    """Exact linear quantile without Torch's 2^24-element input ceiling."""
+    flat = values.reshape(-1)
+    if flat.numel() == 0:
+        raise ValueError("quantile input cannot be empty")
+    quantile = float(quantile)
+    if not 0 <= quantile <= 1:
+        raise ValueError("quantile must lie in [0, 1]")
+    rank = quantile * (flat.numel() - 1)
+    lower_rank = math.floor(rank)
+    upper_rank = math.ceil(rank)
+    lower = torch.kthvalue(flat, lower_rank + 1).values
+    if upper_rank == lower_rank:
+        return lower
+    upper = torch.kthvalue(flat, upper_rank + 1).values
+    return lower + (upper - lower) * (rank - lower_rank)
 
 
 def measure_teacher(trajectory, volume, graph):
@@ -69,7 +89,7 @@ def measure_rollout(rollout, trajectory, volume, graph):
             edge_values += predicted_edge.numel()
     return {
         "position_rms": float(torch.sqrt(error.square().sum(dim=-1).mean()).item()),
-        "position_p99": float(torch.quantile(distance, 0.99).item()),
+        "position_p99": float(flat_quantile(distance, 0.99).item()),
         "position_max": float(distance.max().item()),
         "residual_rms": float(rollout_rms.item()),
         "teacher_residual_rms": float(teacher_rms.item()),
