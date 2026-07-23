@@ -339,6 +339,25 @@ python scripts/render_h7_comparison.py --device cuda
 Apple Silicon can use `--device mps`; CUDA can use `--device cuda`. The runner
 uses deterministic seeds and records the resolved configuration in its JSON.
 
+### Reviewing new Kimodo clips
+
+The local review console generates a full Kimodo sequence, preserves the raw
+NPZ, maps all semantic roles onto the Meshy character, optionally applies
+contact-aware foot locking, measures gross anatomy failures, and renders a
+dense LBS preview without learned flesh mechanics:
+
+```bash
+PYTHONPATH=src python scripts/run_kimodo_review.py
+```
+
+Open `http://127.0.0.1:8787`. Each prompt/seed is retained under the ignored
+`experiments/runs/kimodo_review/` directory with raw and retargeted motion,
+animation, contact sheet, bone-group diagnostic, metrics, and a manual review
+decision. The default generation service is `http://192.168.0.202:8111`; use
+`--kimodo-url` if Kimodo moves. See
+[`experiments/KIMODO_REVIEW.md`](experiments/KIMODO_REVIEW.md) for the diagnostic
+contract and thresholds.
+
 ## Research ladder
 
 1. **H0 — mechanical control (complete):** feeding, assignment, checker

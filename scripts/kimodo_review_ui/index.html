@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Generate, retarget, and inspect Kimodo motion clips on the Flesh-and-bone character.">
+    <title>Kimodo Motion Review</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <div class="shell">
+      <header class="masthead">
+        <div>
+          <p class="eyebrow">Flesh &amp; Bone / motion intake</p>
+          <h1>Kimodo review console</h1>
+          <p class="lede">Generate several clips, isolate retarget quality, and keep the evidence before diagnosing the model.</p>
+        </div>
+        <div class="service-card" aria-live="polite">
+          <span id="service-dot" class="service-dot checking"></span>
+          <div>
+            <strong id="service-state">Checking Kimodo</strong>
+            <span id="service-model">192.168.0.202:8111</span>
+          </div>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <section class="panel generator" aria-labelledby="generator-title">
+          <div class="section-heading">
+            <div>
+              <p class="section-number">01</p>
+              <h2 id="generator-title">Compose a motion</h2>
+            </div>
+            <span class="quiet">One GPU job at a time</span>
+          </div>
+          <form id="generation-form">
+            <label class="field prompt-field">
+              <span>Motion prompt</span>
+              <textarea id="prompt" name="prompt" rows="4" maxlength="600" required>A relaxed two-step dance, upright torso, balanced feet, subtle arm movement</textarea>
+            </label>
+            <div class="prompt-chips" aria-label="Example prompts">
+              <button type="button" data-prompt="A relaxed two-step dance, upright torso, balanced feet, subtle arm movement">Two-step</button>
+              <button type="button" data-prompt="A confident forward walk, natural arm swing, steady upright pelvis">Clean walk</button>
+              <button type="button" data-prompt="A playful side-to-side sway with small steps and both arms visible">Side sway</button>
+              <button type="button" data-prompt="A gentle wave while standing in place, feet planted, upright posture">Standing wave</button>
+            </div>
+            <div class="parameter-grid">
+              <label class="field">
+                <span>Duration <em>seconds</em></span>
+                <input id="duration" name="duration_s" type="number" min="0.5" max="30" step="0.5" value="6">
+              </label>
+              <label class="field">
+                <span>Seed <em>blank = random</em></span>
+                <input id="seed" name="seed" type="number" min="0" max="4294967295" placeholder="random">
+              </label>
+              <label class="field">
+                <span>Diffusion steps</span>
+                <input id="steps" name="diffusion_steps" type="number" min="1" max="200" value="50">
+              </label>
+            </div>
+            <div class="toggles">
+              <label><input id="postprocess" type="checkbox" checked><span>Kimodo postprocess</span></label>
+              <label><input id="contact-ik" type="checkbox" checked><span>Contact-aware foot lock</span></label>
+            </div>
+            <button id="generate-button" class="primary" type="submit">
+              <span>Generate &amp; map to character</span><span aria-hidden="true">↗</span>
+            </button>
+            <p id="form-error" class="error" role="alert"></p>
+          </form>
+        </section>
+
+        <section class="panel progress-panel" aria-labelledby="progress-title">
+          <div class="section-heading">
+            <div>
+              <p class="section-number">02</p>
+              <h2 id="progress-title">Pipeline progress</h2>
+            </div>
+            <span id="elapsed" class="quiet">Idle</span>
+          </div>
+          <div class="progress-track" aria-hidden="true"><div id="progress-bar"></div></div>
+          <div class="current-stage">
+            <span id="stage-pulse" class="stage-pulse"></span>
+            <div>
+              <strong id="stage-title">Ready for a prompt</strong>
+              <p id="stage-message">Raw motion, retargeted motion, diagnostics, and previews will be kept together.</p>
+            </div>
+            <span id="progress-value">0%</span>
+          </div>
+          <ol id="stage-list" class="stage-list">
+            <li data-stage="queued"><span>1</span><div><strong>Queue</strong><small>single-flight slot</small></div></li>
+            <li data-stage="generating"><span>2</span><div><strong>Generate</strong><small>Kimodo NPZ</small></div></li>
+            <li data-stage="retargeting"><span>3</span><div><strong>Retarget</strong><small>SOMA → Meshy</small></div></li>
+            <li data-stage="diagnostics"><span>4</span><div><strong>Diagnose</strong><small>anatomy gates</small></div></li>
+            <li data-stage="rendering"><span>5</span><div><strong>Render</strong><small>dense LBS preview</small></div></li>
+          </ol>
+          <p class="caveat">Kimodo generation is synchronous; its internal percentage is estimated. Stage boundaries after generation are measured.</p>
+        </section>
+
+        <section id="result-panel" class="panel result-panel hidden" aria-labelledby="result-title">
+          <div class="section-heading result-heading">
+            <div>
+              <p class="section-number">03</p>
+              <h2 id="result-title">Retarget review</h2>
+            </div>
+            <div id="verdict-badge" class="verdict">Unreviewed</div>
+          </div>
+          <div class="result-layout">
+            <div class="preview-column">
+              <div class="mode-banner">
+                <strong>Rig-only control</strong>
+                <span>Physics and learned flesh mechanics are off in this view.</span>
+              </div>
+              <figure class="preview-frame">
+                <img id="animation-preview" alt="Generated motion retargeted onto the dense character">
+                <figcaption><strong>Texture preview</strong><span>Pure LBS · camera follows root X/Z · no learned flesh</span></figcaption>
+              </figure>
+              <div class="artifact-links">
+                <a id="sheet-link" target="_blank" rel="noreferrer">Contact sheet</a>
+                <a id="anatomy-link" target="_blank" rel="noreferrer">Bone-group frame</a>
+                <a id="raw-link">Raw NPZ</a>
+                <a id="motion-link">Retargeted NPZ</a>
+              </div>
+            </div>
+            <div class="diagnostic-column">
+              <div class="clip-summary">
+                <p id="result-prompt"></p>
+                <div id="clip-facts" class="clip-facts"></div>
+              </div>
+              <h3>Anatomy checks</h3>
+              <div id="metrics" class="metrics"></div>
+              <details>
+                <summary>Mapping and joint-angle detail</summary>
+                <div id="detail-content" class="detail-content"></div>
+              </details>
+              <div class="decision-box">
+                <label class="field"><span>Review note</span><textarea id="decision-note" rows="3" maxlength="2000" placeholder="What looks right or wrong in this clip?"></textarea></label>
+                <div class="decision-actions">
+                  <button id="reject-button" type="button" class="secondary danger">Reject clip</button>
+                  <button id="accept-button" type="button" class="secondary success">Accept clip</button>
+                </div>
+                <p id="decision-state" class="decision-state"></p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel history-panel" aria-labelledby="history-title">
+          <div class="section-heading">
+            <div>
+              <p class="section-number">04</p>
+              <h2 id="history-title">Clip history</h2>
+            </div>
+            <button id="refresh-history" class="text-button" type="button">Refresh</button>
+          </div>
+          <div id="history" class="history"><p class="empty">No clips generated yet.</p></div>
+        </section>
+      </main>
+    </div>
+    <script src="/app.js" defer></script>
+  </body>
+</html>
