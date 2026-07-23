@@ -1,6 +1,26 @@
 import CoreGraphics
 import simd
 
+enum CameraPreset: String, CaseIterable {
+    case front
+    case left
+    case back
+    case right
+
+    var title: String {
+        rawValue.capitalized
+    }
+
+    var azimuth: Float {
+        switch self {
+        case .front: return 0
+        case .left: return -.pi / 2
+        case .back: return .pi
+        case .right: return .pi / 2
+        }
+    }
+}
+
 struct OrbitCamera {
     var azimuth: Float = 0.28
     var elevation: Float = 0.08
@@ -23,6 +43,11 @@ struct OrbitCamera {
 
     mutating func zoom(delta: Float) {
         distance = min(max(distance * exp(delta * 0.025), 1.5), 7.0)
+    }
+
+    mutating func apply(_ preset: CameraPreset) {
+        azimuth = preset.azimuth
+        elevation = 0.08
     }
 
     func matrices(aspect: Float) -> (

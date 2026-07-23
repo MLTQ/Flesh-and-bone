@@ -58,7 +58,9 @@ enum RuntimeRenderTest {
         outputPath: String,
         profileIndex: Int = 2,
         renderCount: Int? = nil,
-        radiusMultiplier: Float = 1
+        radiusMultiplier: Float = 1,
+        opacity: Float = 0.72,
+        camera: OrbitCamera = OrbitCamera()
     ) throws {
         let runtime = try runtime(
             device: device,
@@ -69,7 +71,7 @@ enum RuntimeRenderTest {
         let target = try texture(device: device, width: width, height: height)
         let count = renderCount ?? runtime.simulation.body.cellCount
         runtime.simulation.body.sortRenderOrder(
-            camera: OrbitCamera(), count: count)
+            camera: camera, count: count)
         guard let command = runtime.queue.makeCommandBuffer() else {
             throw RuntimeAssetError.allocation("render-test command")
         }
@@ -79,8 +81,8 @@ enum RuntimeRenderTest {
             simulation: runtime.simulation,
             renderCount: count,
             radiusMultiplier: radiusMultiplier,
-            opacity: 0.72,
-            camera: OrbitCamera())
+            opacity: opacity,
+            camera: camera)
         command.commit()
         command.waitUntilCompleted()
         guard command.status == .completed else {

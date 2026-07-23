@@ -121,6 +121,25 @@ transparency is the likely production replacement.
 - **Speed** and **intensity** are broadcast to all cells through the skeleton
   motion source. They are useful interface probes, not an RL policy.
 
+## Orientation and opacity audit
+
+A user inspection at opacity 1.0 initially appeared to show rear hair occluding
+the face from the front. Re-rendering the exact production pipeline at named
+front, left, back, and right views showed that the reported straight-on image
+was the true rear view: the long hair, rear belt pouches, trouser texture, and
+foot orientation all match. The adjacent side view correctly reveals the facial
+profile. The full-opacity front render shows the face with no rear-hair
+occlusion.
+
+This was a UI ambiguity rather than an opacity or depth-sort failure. The lab
+now exposes explicit anatomical view buttons while retaining free orbit. The
+headless check accepts the same preset and opacity:
+
+```bash
+.build/release/FleshAndBoneLab \
+  --render-test /tmp/front.png front 1.0
+```
+
 ## From playback to live intent-driven motion
 
 The useful architectural boundary is:

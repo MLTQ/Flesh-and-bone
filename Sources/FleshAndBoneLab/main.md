@@ -9,7 +9,8 @@ benchmark.
 
 ### top-level entry
 
-- **Does:** Runs `--benchmark [frames]`, `--render-test [png]`, or
+- **Does:** Runs `--benchmark [frames]`,
+  `--render-test [png] [front|left|back|right] [opacity]`, or
   `--render-benchmark` synchronously, otherwise starts the ordinary dock-visible
   app with `AppDelegate`.
 - **Interacts with:** `RuntimeAssets` and `RuntimeBenchmark`.
@@ -19,5 +20,5 @@ benchmark.
 | Dependent | Expects | Breaking changes |
 | --- | --- | --- |
 | resource notes/CI | `--benchmark [frames]` prints all profiles | CLI shape |
-| visual QA | render flags use the production simulation/renderer | Alternate path |
+| visual QA | render flags use production simulation/renderer and named views | Alternate path |
 | `scripts/make_flesh_app.sh` | no flags launches the app | Default behavior |

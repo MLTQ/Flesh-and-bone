@@ -26,10 +26,21 @@ if CommandLine.arguments.contains("--benchmark")
             let output = CommandLine.arguments.indices.contains(index + 1)
                 ? CommandLine.arguments[index + 1]
                 : "flesh-render.png"
+            let preset = CommandLine.arguments.indices.contains(index + 2)
+                ? CameraPreset(
+                    rawValue: CommandLine.arguments[index + 2].lowercased())
+                : nil
+            let opacity = CommandLine.arguments.indices.contains(index + 3)
+                ? Float(CommandLine.arguments[index + 3]) ?? 0.72
+                : 0.72
+            var camera = OrbitCamera()
+            if let preset { camera.apply(preset) }
             try RuntimeRenderTest.render(
                 device: device,
                 assetDirectory: assets,
-                outputPath: output)
+                outputPath: output,
+                opacity: min(max(opacity, 0), 1),
+                camera: camera)
         } else {
             try RuntimeRenderTest.benchmark(
                 device: device, assetDirectory: assets)

@@ -126,9 +126,26 @@ final class ControlPanel: NSView {
         stats.textColor = NSColor(
             calibratedRed: 0.66, green: 0.90, blue: 0.76, alpha: 1)
 
+        let cameraButtons = CameraPreset.allCases.enumerated().map {
+            index, preset in
+            let button = NSButton(
+                title: preset.title,
+                target: self,
+                action: #selector(cameraPresetChanged(_:)))
+            button.tag = index
+            button.bezelStyle = .rounded
+            return button
+        }
+        let cameraRow = NSStackView(views: cameraButtons)
+        cameraRow.orientation = .horizontal
+        cameraRow.distribution = .fillEqually
+        cameraRow.spacing = 6
+
         let stack = NSStackView(views: [
             title,
             subtitle,
+            heading("Camera view", size: 12, weight: .semibold),
+            cameraRow,
             heading("Physical profile", size: 12, weight: .semibold),
             profilePopup,
             row(title: "Rendered cells", slider: renderSlider, value: renderValue),
@@ -217,6 +234,11 @@ final class ControlPanel: NSView {
 
     @objc private func densityChanged() {
         metalView.simulation.densityEnabled = densityCheck.state == .on
+    }
+
+    @objc private func cameraPresetChanged(_ sender: NSButton) {
+        guard CameraPreset.allCases.indices.contains(sender.tag) else { return }
+        metalView.setCameraPreset(CameraPreset.allCases[sender.tag])
     }
 
     @objc private func togglePause() {

@@ -344,6 +344,8 @@ The distinction between the controls is intentional:
 - **Rendered cells** uniformly subsamples the same simulated body, so it tests
   visual LOD and draw cost without changing the physics.
 - **Splat radius and opacity** affect coverage and fragment cost only.
+- **Camera presets** identify anatomical front, left, back, and right views;
+  free orbit and zoom remain available for inspection between them.
 - **Speed and intensity** are globally broadcast motion-intent placeholders.
   The current motion source is the tracked 29-frame walk, not a generated
   Kimodo clip or a learned skeleton controller.

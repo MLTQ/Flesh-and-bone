@@ -10,8 +10,8 @@ controls without hiding which sliders alter mechanics.
 ### `ControlPanel`
 
 - **Does:** Builds the programmatic AppKit panel, binds profile/count/radius/
-  opacity/speed/intensity/physics/density/reset/pause controls, and refreshes
-  metrics.
+  opacity/speed/intensity/physics/density/reset/pause controls, binds explicit
+  anatomical camera presets, and refreshes metrics.
 - **Implementation:** Sliders are created without targets, then bound after
   `self` is initialized.
 - **Interacts with:** `FleshMetalView` and `PerformanceMonitor`.
@@ -27,12 +27,19 @@ controls without hiding which sliders alter mechanics.
 - **Rationale:** Keeps rendering performance separate from physics claims.
 - **Ordering:** Render-count changes also re-sort that uniform sample prefix.
 
+### camera presets
+
+- **Does:** Snap to front, left, back, or right without changing zoom.
+- **Rationale:** Makes a true rear view distinguishable from incorrect
+  translucent occlusion and re-sorts splats for the chosen direction.
+
 ## Contracts
 
 | Dependent | Expects | Breaking changes |
 | --- | --- | --- |
 | app user | labels distinguish physical and visual controls | Semantic relabeling |
 | `FleshMetalView` | profile/settings/reset APIs are main-thread safe | Public API |
+| `CameraPreset` | case order remains Front/Left/Back/Right | Button mapping |
 | performance report | static/dynamic MB and GPU timings retain units | Unit changes |
 
 ## Notes

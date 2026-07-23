@@ -130,6 +130,11 @@ final class FleshMetalView: NSView {
         simulation.body.sortRenderOrder(camera: camera, count: renderCount)
     }
 
+    func setCameraPreset(_ preset: CameraPreset) {
+        camera.apply(preset)
+        simulation.body.sortRenderOrder(camera: camera, count: renderCount)
+    }
+
     func reset() {
         simulation.resetDynamics()
     }

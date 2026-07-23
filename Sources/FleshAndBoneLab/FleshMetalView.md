@@ -28,11 +28,17 @@ hot-swap, and orbit input in one AppKit view.
 
 - **Does:** Orbits and zooms without changing simulation state.
 
+### `setCameraPreset`
+
+- **Does:** Snaps to a named anatomical view and immediately rebuilds the
+  far-to-near splat order.
+- **Interacts with:** the control panel's Front/Left/Back/Right buttons.
+
 ## Contracts
 
 | Dependent | Expects | Breaking changes |
 | --- | --- | --- |
-| `ControlPanel` | public settings, profile list/index, simulation metrics | Property API |
+| `ControlPanel` | public settings, profile list/index, camera presets, simulation metrics | Property API |
 | CAMetalLayer | BGRA8, 30 Hz drawable submissions | Pixel/timing changes |
 | performance UI | compute and render are distinct command buffers | Queue structure |
 
