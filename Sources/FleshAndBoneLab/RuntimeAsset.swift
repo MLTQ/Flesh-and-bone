@@ -72,6 +72,7 @@ struct RuntimeBody {
     let pointValues: [SIMD4<Float>]
     let baseRenderOrder: [UInt32]
     let points: MTLBuffer
+    let sourceAnchors: MTLBuffer
     let skinIndices: MTLBuffer
     let skinWeights: MTLBuffer
     let material: MTLBuffer
@@ -92,12 +93,19 @@ struct RuntimeBody {
         let pitch = try reader.value(Float.self)
         let baseRadius = try reader.value(Float.self)
         _ = try reader.value(Float.self)
-        guard version == 1, cellCount > 0, boneCount > 0, frameCount > 2,
+        guard (version == 1 || version == 2),
+              cellCount > 0, boneCount > 0, frameCount > 2,
               pitch > 0, baseRadius > 0 else {
             throw RuntimeAssetError.invalid("body header values")
         }
         let points = try reader.buffer(
             device: device, bytes: cellCount * 16, label: "rest points")
+        let sourceAnchors = version >= 2
+            ? try reader.buffer(
+                device: device,
+                bytes: cellCount * 16,
+                label: "bone source anchors")
+            : points
         let indices = try reader.buffer(
             device: device, bytes: cellCount * 8 * 2, label: "skin indices")
         let weights = try reader.buffer(
@@ -134,6 +142,7 @@ struct RuntimeBody {
             baseRenderOrder: Array(UnsafeBufferPointer(
                 start: orderPointer, count: cellCount)),
             points: points,
+            sourceAnchors: sourceAnchors,
             skinIndices: indices,
             skinWeights: weights,
             material: material,

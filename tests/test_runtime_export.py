@@ -7,8 +7,10 @@ import torch
 from flesh_and_bone.runtime_export import (
     BODY_HEADER,
     BODY_MAGIC,
+    BODY_VERSION,
     MODEL_HEADER,
     MODEL_MAGIC,
+    _bone_source_anchors,
     _six_neighbors,
     _top_six,
     export_runtime_model,
@@ -40,6 +42,26 @@ def test_top_six_export_normalizes_and_pads():
     assert np.all(weights[0, 6:] == 0)
 
 
+def test_source_anchors_project_onto_dominant_bone_segments():
+    points = np.asarray([
+        [0.5, 1.0, 0.0],
+        [2.0, 0.5, 0.0],
+        [-1.0, 4.0, 0.0],
+    ], dtype=np.float32)
+    indices = np.zeros((3, 8), dtype=np.uint16)
+    indices[:, 0] = [0, 1, 0]
+    endpoints = np.asarray([
+        [[0.0, 0.0, 0.0], [0.0, 2.0, 0.0]],
+        [[1.0, 0.0, 0.0], [3.0, 0.0, 0.0]],
+    ], dtype=np.float32)
+
+    anchors = _bone_source_anchors(points, indices, endpoints)
+
+    assert np.allclose(anchors[0], [0.0, 1.0, 0.0])
+    assert np.allclose(anchors[1], [2.0, 0.0, 0.0])
+    assert np.allclose(anchors[2], [0.0, 2.0, 0.0])
+
+
 def test_model_export_preserves_declared_binary_contract(tmp_path):
     state = {
         "coefficient_maxima": torch.tensor([1440.0, 432.0]),
@@ -68,3 +90,4 @@ def test_model_export_preserves_declared_binary_contract(tmp_path):
     assert len(payload) == MODEL_HEADER.size + (5 + 2 + 1314) * 4
     assert BODY_HEADER.size == struct.calcsize("<4sIIIIfff")
     assert BODY_MAGIC == b"FNB1"
+    assert BODY_VERSION == 2

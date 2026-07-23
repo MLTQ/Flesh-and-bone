@@ -346,6 +346,11 @@ The distinction between the controls is intentional:
 - **Splat radius and opacity** affect coverage and fragment cost only.
 - **Camera presets** identify anatomical front, left, back, and right views;
   free orbit and zoom remain available for inspection between them.
+- **Orbit / NCA Source / NCA Vacuum** turns the pointer into a directed
+  front-surface paint tool. Source moves each painted niche
+  `0% → 100% → 200%`; Vacuum reverses that sequence. Sourced cells begin on
+  their assigned bones and are transported toward their exported tissue niches
+  by the live mechanics.
 - **Speed and intensity** are globally broadcast motion-intent placeholders.
   The current motion source is the tracked 29-frame walk, not a generated
   Kimodo clip or a learned skeleton controller.
@@ -361,12 +366,14 @@ The release executable also exposes reproducible headless checks:
 
 ```bash
 .build/release/FleshAndBoneLab --benchmark 180
+.build/release/FleshAndBoneLab --population-test 180
 .build/release/FleshAndBoneLab --render-benchmark
 .build/release/FleshAndBoneLab --render-test /tmp/flesh-native.png
 ```
 
 See [`experiments/RUNTIME_LAB.md`](experiments/RUNTIME_LAB.md) for numerical
-parity, resource measurements, and the controller roadmap.
+parity, resource measurements, the directed overcapacity/wound audit, and the
+controller roadmap.
 
 ## Running the experiments
 

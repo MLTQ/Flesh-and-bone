@@ -365,7 +365,12 @@ graphs plus visual-only LOD controls and two globally broadcast motion scalars.
 
 **Status:** complete as a runtime instrument. All three profiles remain finite;
 the Metal and PyTorch 13k results agree to displayed precision after 180 frames.
-On the development M1 Pro, the 92k model has substantial 30 Hz headroom. See
+On the development M1 Pro, the 92k model has substantial 30 Hz headroom. A
+subsequent directed audit paints a local patch above the 100% reference
+population, verifies source-anchor contraction, and finds 5.9–21.9x more
+paired-cell separation than the matched density-off control. It then
+removes/refills the same patch with exact GPU population restoration on all
+profiles. See
 [`RUNTIME_LAB.md`](RUNTIME_LAB.md) for exact measurements and limitations.
 
 **Decision:** keep the sparse native runtime and use it to choose deployment
@@ -373,6 +378,10 @@ budgets. It does not establish learned locomotion: the skeleton still replays a
 tracked walk. The next controller boundary should accept a low-rate semantic
 intent and return continuous joint targets, allowing a physics/RL policy to
 replace playback while leaving flesh mechanics unchanged.
+The source/vacuum control remains an explicitly privileged re-feeding and
+crowding probe: two slots are preallocated per niche, and cells retain their
+exported identities and graph edges while dormant. It supports 0/100/200%
+targeted occupancy, not division or dynamic topology.
 
 ## Interpretation discipline
 

@@ -10,7 +10,8 @@ native Swift/Metal runtime without exporting production-size bodies in tests.
 ### Graph/influence packing tests
 
 - **Does:** Verifies eight-lane alignment, `-1` neighbor padding, descending
-  top-six selection, zero influence padding, and exact normalization.
+  top-six selection, zero influence padding, exact normalization, and dominant
+  bone-segment source projection including endpoint clamping.
 
 ### Model binary test
 
@@ -21,5 +22,5 @@ native Swift/Metal runtime without exporting production-size bodies in tests.
 
 | Dependent | Expects | Breaking changes |
 | --- | --- | --- |
-| `runtime_export.py` | fixed headers and array packing | Binary format changes |
+| `runtime_export.py` | v2 body header and fixed array packing | Binary format changes |
 | `RuntimeAsset.swift` | learned payload contains 1,314 MLP parameters | Architecture changes |

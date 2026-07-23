@@ -11,11 +11,19 @@ material, rig-animation, and H7C weight semantics.
 ### `export_runtime_body`
 
 - **Does:** Writes one `FNB1` body containing aligned rest points, six skin
-  influences, material fields, fixed six-neighbor topology, RGBA8 texture,
-  deterministic render order, and the rig's unique walk matrices.
+  influences, dominant-bone source anchors, material fields, fixed six-neighbor
+  topology, RGBA8 texture, deterministic render order, and the rig's unique
+  walk matrices.
 - **Rationale:** Physics resolution and render-count sampling remain separate.
   A deterministic random render order gives approximately uniform visual
   coverage at every prefix length.
+
+### `_bone_source_anchors`
+
+- **Does:** Projects each cell's target point onto its dominant weighted bone
+  segment.
+- **Rationale:** Source activation begins on the moving skeleton without
+  inventing a second anatomical identity or exposing a world-axis shortcut.
 
 ### `export_runtime_model`
 
@@ -33,7 +41,7 @@ material, rig-animation, and H7C weight semantics.
 
 | Dependent | Expects | Breaking changes |
 | --- | --- | --- |
-| `RuntimeAsset.swift` | `FNB1`/`FNM1`, little-endian headers, exact array order | Header or array layout |
+| `RuntimeAsset.swift` | `FNB1` v2/`FNM1`, little-endian headers, exact array order | Header or array layout |
 | Metal kernels | points/material use float4; neighbors have eight int32 lanes | Alignment or lane count |
 | renderer | colors are RGBA8 and render order is a complete permutation | Color/order encoding |
 | physics | matrices are transposed for Metal column-major multiplication | Matrix orientation |
@@ -42,3 +50,5 @@ material, rig-animation, and H7C weight semantics.
 
 Missing neighbors are `-1`. The final two influence lanes are zero-padded.
 Body assets are generated build products; canonical NPZ assets remain source.
+The loader retains a v1 fallback where the source anchor equals the target, but
+only v2 provides bone-origin feeding.

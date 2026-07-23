@@ -18,7 +18,7 @@ BODY_MAGIC = b"FNB1"
 MODEL_MAGIC = b"FNM1"
 BODY_HEADER = struct.Struct("<4sIIIIfff")
 MODEL_HEADER = struct.Struct("<4sIIIfff")
-BODY_VERSION = 1
+BODY_VERSION = 2
 MODEL_VERSION = 1
 
 
@@ -54,6 +54,21 @@ def _top_six(weights: np.ndarray):
     return indices, packed
 
 
+def _bone_source_anchors(
+    points: np.ndarray,
+    skin_indices: np.ndarray,
+    bone_endpoints: np.ndarray,
+) -> np.ndarray:
+    """Project each cell onto the segment of its dominant weighted bone."""
+    dominant = skin_indices[:, 0].astype(np.int64)
+    starts = bone_endpoints[dominant, 0]
+    vectors = bone_endpoints[dominant, 1] - starts
+    length_squared = np.maximum((vectors * vectors).sum(axis=1), 1e-12)
+    fraction = ((points - starts) * vectors).sum(axis=1) / length_squared
+    fraction = np.clip(fraction, 0, 1)
+    return (starts + fraction[:, None] * vectors).astype("<f4")
+
+
 def export_runtime_body(
     rig_path,
     volume_path,
@@ -76,6 +91,15 @@ def export_runtime_body(
         np.ones((cell_count, 1), dtype="<f4"),
     ], axis=1)
     skin_indices, skin_weights = _top_six(volume.weights.numpy())
+    source_points = _bone_source_anchors(
+        points,
+        skin_indices,
+        asset.rest_bone_endpoints.numpy(),
+    )
+    source_point4 = np.concatenate([
+        source_points,
+        np.ones((cell_count, 1), dtype="<f4"),
+    ], axis=1)
     softness = np.clip(volume.bone_distance.numpy() / 0.18, 0, 1)
     stiffness = 1200.0 * (1 - softness) + 300.0 * softness
     damping = 2 * 0.22 * np.sqrt(stiffness)
@@ -118,6 +142,7 @@ def export_runtime_body(
         ))
         for value in (
             point4,
+            source_point4,
             skin_indices,
             skin_weights,
             material,
@@ -135,6 +160,7 @@ def export_runtime_body(
         "frame_count": frame_count,
         "pitch": pitch,
         "base_radius": float(radius_scale) * pitch,
+        "source_anchor": "dominant-bone-nearest-point",
         "neighbor_count_mean": float((neighbors >= 0).sum(axis=1).mean()),
         "neighbor_count_min": int((neighbors >= 0).sum(axis=1).min()),
         "neighbor_count_max": int((neighbors >= 0).sum(axis=1).max()),

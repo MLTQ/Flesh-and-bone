@@ -9,7 +9,9 @@ struct RenderUniforms {
     var baseRadius: Float
     var radiusMultiplier: Float
     var opacity: Float
-    var cellCount: UInt32
+    var baseCellCount: UInt32
+    var renderCount: UInt32
+    var layerCount: UInt32
 }
 
 final class FleshRenderer {
@@ -60,8 +62,10 @@ final class FleshRenderer {
         encoder.setVertexBuffer(body.material, offset: 0, index: 2)
         encoder.setVertexBuffer(body.colors, offset: 0, index: 3)
         encoder.setVertexBuffer(body.renderOrder, offset: 0, index: 4)
+        encoder.setVertexBuffer(simulation.population, offset: 0, index: 5)
         let aspect = Float(texture.width) / Float(max(texture.height, 1))
         let cameraValues = camera.matrices(aspect: aspect)
+        let boundedRenderCount = min(max(renderCount, 1), body.cellCount)
         var uniforms = RenderUniforms(
             viewProjection: cameraValues.viewProjection,
             cameraRight: SIMD4<Float>(cameraValues.right, 0),
@@ -69,15 +73,17 @@ final class FleshRenderer {
             baseRadius: body.baseRadius,
             radiusMultiplier: radiusMultiplier,
             opacity: opacity,
-            cellCount: UInt32(body.cellCount)
+            baseCellCount: UInt32(body.cellCount),
+            renderCount: UInt32(boundedRenderCount),
+            layerCount: UInt32(simulation.populationLayerCount)
         )
         encoder.setVertexBytes(
-            &uniforms, length: MemoryLayout<RenderUniforms>.stride, index: 5)
+            &uniforms, length: MemoryLayout<RenderUniforms>.stride, index: 6)
         encoder.drawPrimitives(
             type: .triangle,
             vertexStart: 0,
             vertexCount: 6,
-            instanceCount: min(max(renderCount, 1), body.cellCount)
+            instanceCount: boundedRenderCount * simulation.populationLayerCount
         )
         encoder.endEncoding()
     }

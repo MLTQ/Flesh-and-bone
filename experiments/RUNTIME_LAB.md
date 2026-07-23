@@ -28,21 +28,25 @@ and per-cell passes dominate.
 
 | Physical profile | Pitch | Cells | Body asset | Dynamic state |
 | --- | ---: | ---: | ---: | ---: |
-| coarse | 25.0 mm | 13,273 | 1.6 MB | 2.5 MB |
-| dense | 17.5 mm | 35,527 | 4.3 MB | 6.8 MB |
-| ultra | 12.5 mm | 91,979 | 11.1 MB | 17.7 MB |
+| coarse | 25.0 mm | 13,273 | 1.8 MB | 5.6 MB |
+| dense | 17.5 mm | 35,527 | 4.9 MB | 15.1 MB |
+| ultra | 12.5 mm | 91,979 | 12.6 MB | 39.0 MB |
 
-Dynamic state is twelve aligned `float4` arrays per cell: residual and velocity
-ping-pong buffers, three LBS samples, two neighbor messages, compression and
-stretch vectors, and density scalars. The app also retains canonical points and
-sample order on the CPU for view-dependent sorting; this adds about 20 bytes per
-cell. Static GPU buffers are approximately the body-asset size.
+Dynamic state is thirteen aligned `float4` arrays per slot plus one active
+scalar: residual and velocity ping-pong buffers, three target LBS samples, one
+animated bone-source sample, two neighbor messages, compression and stretch
+vectors, and density scalars. The native lab preallocates two slots per
+anatomical niche: layer zero is the complete 100% reference body and layer one
+is dormant reserve, establishing a directed 200% ceiling. The body asset is
+not duplicated. The app also retains canonical points and sample order on the
+CPU for view-dependent sorting; this adds about 20 bytes per niche.
 
 With the ultra profile active and all three profiles embedded in the bundle,
-the complete AppKit/Metal process settled near 132 MiB resident on the
-development machine. That number includes framework, shader, window, driver,
-CPU sorting, and allocator overhead, so it is intentionally much larger than
-the model-plus-state table and is the better desktop deployment estimate.
+the complete AppKit/Metal process settled near 160 MiB resident on the
+development machine. That number includes the 200% dynamic reserve, framework,
+shader, window, driver, CPU sorting, and allocator overhead, so it is
+intentionally much larger than the model-plus-state table and is the better
+desktop deployment estimate.
 
 ## Compute measurement
 
@@ -53,17 +57,21 @@ command-buffer GPU intervals and exclude window presentation.
 
 | Cells | Median GPU ms/frame | Five-run range | 30 Hz headroom | RMS residual after 180 | Max residual |
 | ---: | ---: | ---: | ---: | ---: | ---: |
-| 13,273 | 0.423 | 0.418–0.485 | 78.71× | 18.954 mm | 124.611 mm |
-| 35,527 | 1.010 | 1.007–1.016 | 32.99× | 18.445 mm | 128.244 mm |
-| 91,979 | 2.491 | 2.481–2.558 | 13.38× | 17.908 mm | 131.146 mm |
+| 13,273 | 0.467 | 0.464–0.542 | 71.38× | 18.954 mm | 124.611 mm |
+| 35,527 | 1.160 | 1.155–1.168 | 28.74× | 18.445 mm | 128.244 mm |
+| 91,979 | 2.856 | 2.818–2.878 | 11.67× | 17.908 mm | 131.146 mm |
 
 All states were finite. The residual magnitudes are the intended visible
 secondary motion relative to LBS, not error against a teacher in this runtime
 test.
 
-Compute cost is close to linear in cell count. At 92k, it consumes roughly
-7.5% of a 33.3 ms 30 Hz frame budget on this laptop GPU. A discrete 4090-class
-GPU is unnecessary for inference; it remains useful for training and large
+Compute cost is close to linear in allocated slots. Preallocating the dormant
+reserve raises the ultra-profile median from the previous source-capable
+2.619 ms to 2.856 ms because kernels visit 184k slots, although inactive slots
+exit early from observation and integration. The active baseline's numerical
+result is unchanged. At 92k reference cells, compute consumes roughly 8.6% of
+a 33.3 ms 30 Hz frame budget on this laptop GPU. A discrete 4090-class GPU is
+unnecessary for inference; it remains useful for training and large
 experimental sweeps.
 
 ## Numerical parity
@@ -89,19 +97,21 @@ profile, or render count changes; the sort itself is not in the per-frame GPU
 timing. Radius primarily affects fragment coverage, while rendered count affects
 vertex and fragment work.
 
-One clean, warmed run produced:
+The median of three warmed runs produced:
 
 | Physical cells | Rendered cells | 0.75× radius | 1.00× radius | 1.50× radius |
 | ---: | ---: | ---: | ---: | ---: |
-| 13,273 | 13,273 | 0.111 ms | 0.211 ms | 0.297 ms |
-| 35,527 | 35,527 | 0.265 ms | 0.366 ms | 0.567 ms |
-| 91,979 | 22,994 | 0.178 ms | 0.169 ms | 0.214 ms |
-| 91,979 | 45,989 | 0.335 ms | 0.383 ms | 0.450 ms |
-| 91,979 | 91,979 | 0.737 ms | 0.755 ms | 0.961 ms |
+| 13,273 | 13,273 | 0.583 ms | 0.322 ms | 0.646 ms |
+| 35,527 | 35,527 | 0.532 ms | 0.610 ms | 0.930 ms |
+| 91,979 | 22,994 | 0.288 ms | 0.348 ms | 0.425 ms |
+| 91,979 | 45,989 | 0.610 ms | 0.666 ms | 0.833 ms |
+| 91,979 | 91,979 | 1.262 ms | 1.433 ms | 1.770 ms |
 
-The small non-monotonic 25% row is timing noise at sub-0.25 ms duration, not a
-claim that larger splats are cheaper. The interactive panel reports the current
-configuration continuously.
+The coarse non-monotonic row is timing noise at short command duration, not a
+claim that larger splats are cheaper. Rendering visits both occupancy layers
+so an arbitrary reserve patch can appear without rebuilding instance lists;
+dormant reserve fragments are discarded. The interactive panel reports the
+current configuration continuously.
 
 Canonical rest-pose sorting is a pragmatic translucent-splat solution. It is
 visually clean for the current deformation range, but not exact when secondary
@@ -118,8 +128,52 @@ transparency is the likely production replacement.
 - **H6C + H7C physics** compares living residual motion with pure skinning.
 - **H7C density residual** isolates the learned nonlinear correction from the
   structure-preserving H6C backbone.
+- **Orbit / NCA Source / NCA Vacuum** changes pointer behavior. The circular
+  brush selects only the frontmost pitch-scaled depth slab, so editing is
+  directed rather than an infinite ray through the body.
+- **NCA Vacuum** takes each painted niche from 200% to 100%, or from 100% to 0%.
+- **NCA Source** takes each painted niche from 0% to 100%, or from 100% to 200%.
+  New cells begin at animated dominant-bone anchors with zero velocity. One
+  drag changes each niche only once; lift and paint again for another layer.
 - **Speed** and **intensity** are broadcast to all cells through the skeleton
   motion source. They are useful interface probes, not an RL policy.
+
+## Directed overcapacity and wound audit
+
+The native audit uses the production front-surface brush at the viewport center.
+It first activates the reserve layer in that local patch, rolls the resulting
+overcapacity for 180 frames, and measures both source-anchor contraction and
+the separation between paired niche cells. It then removes the reserve, vacuums
+the same baseline patch, dwells for 30 frames, refills it from the bones, and
+recovers for another 180 frames. Counts and residuals come from completed GPU
+buffers rather than UI counters.
+
+| Cells | Painted niches | Peak population | Source RMS | Overcapacity RMS | H7C/control separation | Wound population | Restored | Verdict |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| 13,273 | 131 | 100.99% | 158.950 mm | 12.020 mm | 13.275 / 0.605 mm | 99.01% | 13,273 | pass |
+| 35,527 | 173 | 100.49% | 163.759 mm | 11.505 mm | 9.868 / 1.108 mm | 99.51% | 35,527 | pass |
+| 91,979 | 242 | 100.26% | 165.438 mm | 10.774 mm | 7.265 / 1.224 mm | 99.74% | 91,979 | pass |
+
+All profiles remain finite, contract injected-cell displacement by more than
+90%, return exactly to the reference count after removing the reserve, and
+restore exactly after the local wound. The density arm produces 5.9–21.9 times
+the paired separation of the otherwise identical H6C-backbone control. The
+total percentages are small because a 72-pixel brush affects only a local
+surface patch; within the selected patch every niche changes from 100% to 200%.
+
+The cross-layer signal is deliberately structural. A paired cell observes an
+antisymmetric preferred separation of `0.65 × pitch`; that compression enters
+the already-frozen bounded H7C density rule. This makes overcapacity a physical
+stress rather than two perfectly coincident, noninteracting render instances.
+It does not prove the H7C model learned cell birth or crowd regulation—the
+overcapacity relation was absent from its training distribution.
+
+Capacity is still preallocated. Every reserve cell clones a target, phenotype,
+skin weights, and same-layer graph edges from one exported niche. This tests
+directed mass addition/removal, bone-to-niche transport, active-neighbor
+masking, and a first local crowding response. It does not test new identity
+creation, fate selection, dynamic neighbor insertion, cell division, or growth
+beyond 200%.
 
 ## Orientation and opacity audit
 
@@ -188,6 +242,7 @@ provides the performance budget for the controller stages above it.
 ```bash
 scripts/make_flesh_app.sh
 .build/release/FleshAndBoneLab --benchmark 180
+.build/release/FleshAndBoneLab --population-test 180
 .build/release/FleshAndBoneLab --render-benchmark
 .build/release/FleshAndBoneLab --render-test /tmp/flesh-native.png
 ```

@@ -15,8 +15,13 @@ files and `FNM1` model file from the curated experiment state. Run
 `scripts/make_flesh_app.sh` to export, compile, and place a self-contained
 `FleshAndBoneLab.app` under `dist/`.
 
-The body files include a fixed six-neighbor graph, material data, six skinning
-influences padded to eight lanes, the tracked walk matrices, and a deterministic
-render sample order. They are deliberately not source-of-truth evidence; the
-experiment assets and checkpoints from which they are derived remain the
-authoritative records.
+The v2 body files include a fixed six-neighbor graph, material data, six
+skinning influences padded to eight lanes, one dominant-bone source anchor per
+cell, the tracked walk matrices, and a deterministic render order.
+They are deliberately not source-of-truth evidence; the experiment assets and
+checkpoints from which they are derived remain the authoritative records.
+
+The app allocates two dynamic occupancy slots per exported niche at runtime.
+The first forms the 100% reference body and the second is dormant reserve, so
+directed Source strokes can raise a local patch to 200% without doubling these
+immutable body files.

@@ -22,6 +22,15 @@ final class ControlPanel: NSView {
         checkboxWithTitle: "H6C + H7C physics", target: nil, action: nil)
     private let densityCheck = NSButton(
         checkboxWithTitle: "H7C density residual", target: nil, action: nil)
+    private let interactionControl = NSSegmentedControl(
+        labels: ["Orbit", "NCA Source", "NCA Vacuum"],
+        trackingMode: .selectOne,
+        target: nil,
+        action: nil)
+    private let brushSlider = NSSlider(
+        value: 44, minValue: 8, maxValue: 120, target: nil, action: nil)
+    private let brushValue = NSTextField(labelWithString: "44 px")
+    private let populationValue = NSTextField(labelWithString: "")
     private let pauseButton = NSButton(
         title: "Pause", target: nil, action: nil)
     private let stats = NSTextField(wrappingLabelWithString: "")
@@ -107,6 +116,15 @@ final class ControlPanel: NSView {
         densityCheck.state = .on
         densityCheck.target = self
         densityCheck.action = #selector(densityChanged)
+        interactionControl.selectedSegment = 0
+        interactionControl.target = self
+        interactionControl.action = #selector(interactionChanged)
+        brushSlider.target = self
+        brushSlider.action = #selector(brushChanged)
+        populationValue.font = .monospacedDigitSystemFont(
+            ofSize: 11, weight: .regular)
+        populationValue.textColor = NSColor(
+            calibratedRed: 0.66, green: 0.90, blue: 0.76, alpha: 1)
 
         pauseButton.bezelStyle = .rounded
         pauseButton.target = self
@@ -140,6 +158,9 @@ final class ControlPanel: NSView {
         cameraRow.orientation = .horizontal
         cameraRow.distribution = .fillEqually
         cameraRow.spacing = 6
+        let populationNote = caption(
+            "Paint once per stroke: Source takes a niche 0→100→200%; "
+            + "Vacuum takes it 200→100→0%. New cells enter from their bone.")
 
         let stack = NSStackView(views: [
             title,
@@ -148,6 +169,11 @@ final class ControlPanel: NSView {
             cameraRow,
             heading("Physical profile", size: 12, weight: .semibold),
             profilePopup,
+            heading("NCA paint tool", size: 12, weight: .semibold),
+            populationValue,
+            interactionControl,
+            row(title: "Brush radius", slider: brushSlider, value: brushValue),
+            populationNote,
             row(title: "Rendered cells", slider: renderSlider, value: renderValue),
             row(title: "Splat radius", slider: radiusSlider, value: radiusValue),
             row(title: "Opacity", slider: opacitySlider, value: opacityValue),
@@ -163,7 +189,7 @@ final class ControlPanel: NSView {
         ])
         stack.orientation = .vertical
         stack.alignment = .leading
-        stack.spacing = 12
+        stack.spacing = 8
         stack.translatesAutoresizingMaskIntoConstraints = false
         addSubview(stack)
         for view in stack.views {
@@ -180,6 +206,7 @@ final class ControlPanel: NSView {
         profilePopup.selectItem(at: metalView.profileIndex)
         renderSlider.doubleValue = 1
         renderChanged()
+        updatePopulationControls()
     }
 
     @objc private func profileChanged() {
@@ -241,6 +268,18 @@ final class ControlPanel: NSView {
         metalView.setCameraPreset(CameraPreset.allCases[sender.tag])
     }
 
+    @objc private func interactionChanged() {
+        metalView.interactionMode =
+            InteractionMode(rawValue: interactionControl.selectedSegment)
+            ?? .orbit
+    }
+
+    @objc private func brushChanged() {
+        metalView.brushRadiusPixels = Float(brushSlider.doubleValue)
+        brushValue.stringValue = String(
+            format: "%.0f px", brushSlider.doubleValue)
+    }
+
     @objc private func togglePause() {
         metalView.paused.toggle()
         pauseButton.title = metalView.paused ? "Resume" : "Pause"
@@ -256,6 +295,7 @@ final class ControlPanel: NSView {
         let staticMB = Double(
             body.sourceBytes + metalView.simulation.model.sourceBytes) / 1_000_000
         let dynamicMB = Double(metalView.simulation.dynamicBytes) / 1_000_000
+        updatePopulationControls()
         stats.stringValue = String(
             format:
                 "compute  %6.2f ms  (%4.1f× real-time)\\n"
@@ -271,5 +311,13 @@ final class ControlPanel: NSView {
             dynamicMB,
             body.pitch * 1000
         )
+    }
+
+    private func updatePopulationControls() {
+        let simulation = metalView.simulation
+        populationValue.stringValue = String(
+            format: "%@ active · %5.1f%% of body (max 200%%)",
+            simulation.activeCount.formatted(),
+            simulation.populationPercentage)
     }
 }

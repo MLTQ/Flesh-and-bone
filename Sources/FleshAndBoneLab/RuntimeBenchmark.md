@@ -29,6 +29,10 @@ or Gaussian fill cost.
 
 Radius and render count are intentionally absent: they affect raster fill, not
 the NCA rule. The interactive panel reports render timing separately.
+Every row begins at the 100% reference population and includes the dormant
+second-layer reserve plus its animated source-anchor skin sample, so its timing
+matches the 200%-capable viewer. Kernels visit both layers even when the reserve
+is inactive; the benchmark therefore reports the real capacity cost.
 `FLESH_BACKBONE_ONLY=1` retains the same graph/integration path while zeroing
 the learned density acceleration.
 `FLESH_DEBUG_CELL=<index>` prints one final cell even when the row is finite.

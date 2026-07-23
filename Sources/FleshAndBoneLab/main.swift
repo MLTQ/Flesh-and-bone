@@ -2,6 +2,7 @@ import AppKit
 import Metal
 
 if CommandLine.arguments.contains("--benchmark")
+    || CommandLine.arguments.contains("--population-test")
     || CommandLine.arguments.contains("--render-test")
     || CommandLine.arguments.contains("--render-benchmark") {
     guard let device = MTLCreateSystemDefaultDevice() else {
@@ -21,6 +22,15 @@ if CommandLine.arguments.contains("--benchmark")
                 device: device,
                 assetDirectory: assets,
                 frames: max(frames, 1))
+        } else if let index = CommandLine.arguments.firstIndex(
+            of: "--population-test") {
+            let frames = CommandLine.arguments.indices.contains(index + 1)
+                ? Int(CommandLine.arguments[index + 1]) ?? 180
+                : 180
+            try PopulationBenchmark.run(
+                device: device,
+                assetDirectory: assets,
+                recoveryFrames: max(frames, 1))
         } else if let index = CommandLine.arguments.firstIndex(
             of: "--render-test") {
             let output = CommandLine.arguments.indices.contains(index + 1)

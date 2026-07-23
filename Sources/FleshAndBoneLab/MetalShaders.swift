@@ -8,9 +8,11 @@ constant int HIDDEN = 32;
 
 struct SimulationUniforms {
     uint cellCount;
+    uint baseCellCount;
     uint boneCount;
     uint frameCount;
     uint physicsEnabled;
+    uint layerCount;
     float phase;
     float phaseDelta;
     float motionIntensity;
@@ -56,22 +58,37 @@ inline float3 skinPoint(
 
 kernel void skin_motion(
     const device float4 *points [[buffer(0)]],
-    const device ushort *indices [[buffer(1)]],
-    const device float *weights [[buffer(2)]],
-    const device float4x4 *matrices [[buffer(3)]],
-    device float4 *lbsPrevious [[buffer(4)]],
-    device float4 *lbsCurrent [[buffer(5)]],
-    device float4 *lbsNext [[buffer(6)]],
-    constant SimulationUniforms &u [[buffer(7)]],
-    uint cell [[thread_position_in_grid]]
+    const device float4 *sourceAnchors [[buffer(1)]],
+    const device ushort *indices [[buffer(2)]],
+    const device float *weights [[buffer(3)]],
+    const device float4x4 *matrices [[buffer(4)]],
+    device float4 *lbsPrevious [[buffer(5)]],
+    device float4 *lbsCurrent [[buffer(6)]],
+    device float4 *lbsNext [[buffer(7)]],
+    device float4 *lbsSource [[buffer(8)]],
+    constant SimulationUniforms &u [[buffer(9)]],
+    uint slot [[thread_position_in_grid]]
 ) {
-    if (cell >= u.cellCount) return;
-    lbsPrevious[cell] = float4(skinPoint(
+    if (slot >= u.cellCount) return;
+    uint cell = slot % u.baseCellCount;
+    lbsPrevious[slot] = float4(skinPoint(
         cell, u.phase - u.phaseDelta, points, indices, weights, matrices, u), 0.0f);
-    lbsCurrent[cell] = float4(skinPoint(
+    lbsCurrent[slot] = float4(skinPoint(
         cell, u.phase, points, indices, weights, matrices, u), 0.0f);
-    lbsNext[cell] = float4(skinPoint(
+    lbsNext[slot] = float4(skinPoint(
         cell, u.phase + u.phaseDelta, points, indices, weights, matrices, u), 0.0f);
+    lbsSource[slot] = float4(skinPoint(
+        cell, u.phase, sourceAnchors, indices, weights, matrices, u), 0.0f);
+}
+
+inline float3 nicheAxis(uint cell) {
+    uint hash = cell * 1664525u + 1013904223u;
+    float3 axis = float3(
+        float(hash & 1023u) / 511.5f - 1.0f,
+        float((hash >> 10) & 1023u) / 511.5f - 1.0f,
+        float((hash >> 20) & 1023u) / 511.5f - 1.0f
+    );
+    return axis / max(length(axis), 1.0e-6f);
 }
 
 kernel void observe_neighbors(
@@ -80,17 +97,28 @@ kernel void observe_neighbors(
     const device float4 *lbsCurrent [[buffer(2)]],
     const device float4 *material [[buffer(3)]],
     const device int *neighbors [[buffer(4)]],
-    device float4 *neighborResidual [[buffer(5)]],
-    device float4 *neighborVelocity [[buffer(6)]],
-    device float4 *compressionVector [[buffer(7)]],
-    device float4 *stretchVector [[buffer(8)]],
-    device float4 *densityScalars [[buffer(9)]],
-    constant SimulationUniforms &u [[buffer(10)]],
-    uint cell [[thread_position_in_grid]]
+    const device float *population [[buffer(5)]],
+    device float4 *neighborResidual [[buffer(6)]],
+    device float4 *neighborVelocity [[buffer(7)]],
+    device float4 *compressionVector [[buffer(8)]],
+    device float4 *stretchVector [[buffer(9)]],
+    device float4 *densityScalars [[buffer(10)]],
+    constant SimulationUniforms &u [[buffer(11)]],
+    uint slot [[thread_position_in_grid]]
 ) {
-    if (cell >= u.cellCount) return;
-    float3 ownResidual = residual[cell].xyz;
-    float3 ownVelocity = velocity[cell].xyz;
+    if (slot >= u.cellCount) return;
+    uint cell = slot % u.baseCellCount;
+    uint layer = slot / u.baseCellCount;
+    if (population[slot] < 0.5f) {
+        neighborResidual[slot] = float4(0.0f);
+        neighborVelocity[slot] = float4(0.0f);
+        compressionVector[slot] = float4(0.0f);
+        stretchVector[slot] = float4(0.0f);
+        densityScalars[slot] = float4(0.0f);
+        return;
+    }
+    float3 ownResidual = residual[slot].xyz;
+    float3 ownVelocity = velocity[slot].xyz;
     float3 meanResidual = float3(0.0f);
     float3 meanVelocity = float3(0.0f);
     float3 compressionDirection = float3(0.0f);
@@ -98,16 +126,19 @@ kernel void observe_neighbors(
     float signedCompression = 0.0f;
     float compressionSquared = 0.0f;
     float stretchSquared = 0.0f;
-    float degree = 0.0f;
+    float graphDegree = 0.0f;
+    float densityDegree = 0.0f;
     uint base = cell * 8;
     for (uint lane = 0; lane < 8; ++lane) {
         int neighbor = neighbors[base + lane];
         if (neighbor < 0) continue;
-        uint selected = uint(neighbor);
-        degree += 1.0f;
+        uint selected = layer * u.baseCellCount + uint(neighbor);
+        if (population[selected] < 0.5f) continue;
+        graphDegree += 1.0f;
+        densityDegree += 1.0f;
         meanResidual += residual[selected].xyz - ownResidual;
         meanVelocity += velocity[selected].xyz - ownVelocity;
-        float3 equilibrium = lbsCurrent[selected].xyz - lbsCurrent[cell].xyz;
+        float3 equilibrium = lbsCurrent[selected].xyz - lbsCurrent[slot].xyz;
         float lengthValue = length(equilibrium);
         float3 unit = equilibrium / max(lengthValue, 1.0e-12f);
         float denominator = max(lengthValue, 0.5f * u.pitch);
@@ -121,15 +152,45 @@ kernel void observe_neighbors(
         compressionDirection += -compression * compression * unit;
         stretchDirection += stretch * stretch * unit;
     }
-    float inverseDegree = 1.0f / max(degree, 1.0f);
-    neighborResidual[cell] = float4(meanResidual * inverseDegree, 0.0f);
-    neighborVelocity[cell] = float4(meanVelocity * inverseDegree, 0.0f);
-    compressionVector[cell] = float4(compressionDirection * inverseDegree, 0.0f);
-    stretchVector[cell] = float4(stretchDirection * inverseDegree, 0.0f);
-    densityScalars[cell] = float4(
-        signedCompression * inverseDegree,
-        sqrt(compressionSquared * inverseDegree),
-        sqrt(stretchSquared * inverseDegree),
+    if (u.layerCount == 2) {
+        uint other = (1u - layer) * u.baseCellCount + cell;
+        if (population[other] >= 0.5f) {
+            float3 unit = nicheAxis(cell);
+            if (layer != 0) unit = -unit;
+            float desiredLength = 0.65f * u.pitch;
+            float3 actual = (
+                lbsCurrent[other].xyz + residual[other].xyz
+            ) - (
+                lbsCurrent[slot].xyz + ownResidual
+            );
+            float3 difference = actual - unit * desiredLength;
+            float strain = clamp(
+                dot(difference, unit) / max(desiredLength, 1.0e-6f),
+                -1.0f,
+                1.0f
+            );
+            float compression = max(-strain - 0.05f, 0.0f);
+            float stretch = max(strain - 0.08f, 0.0f);
+            densityDegree += 1.0f;
+            signedCompression += -strain;
+            compressionSquared += compression * compression;
+            stretchSquared += stretch * stretch;
+            compressionDirection += -compression * compression * unit;
+            stretchDirection += stretch * stretch * unit;
+        }
+    }
+    float inverseGraphDegree = 1.0f / max(graphDegree, 1.0f);
+    float inverseDensityDegree = 1.0f / max(densityDegree, 1.0f);
+    neighborResidual[slot] = float4(meanResidual * inverseGraphDegree, 0.0f);
+    neighborVelocity[slot] = float4(meanVelocity * inverseGraphDegree, 0.0f);
+    compressionVector[slot] = float4(
+        compressionDirection * inverseDensityDegree, 0.0f);
+    stretchVector[slot] = float4(
+        stretchDirection * inverseDensityDegree, 0.0f);
+    densityScalars[slot] = float4(
+        signedCompression * inverseDensityDegree,
+        sqrt(compressionSquared * inverseDensityDegree),
+        sqrt(stretchSquared * inverseDensityDegree),
         material[cell].x
     );
 }
@@ -150,33 +211,40 @@ kernel void integrate_flesh(
     const device float4 *compressionVector [[buffer(8)]],
     const device float4 *stretchVector [[buffer(9)]],
     const device float4 *densityScalars [[buffer(10)]],
-    const device float *model [[buffer(11)]],
-    device float4 *residualOut [[buffer(12)]],
-    device float4 *velocityOut [[buffer(13)]],
-    constant SimulationUniforms &u [[buffer(14)]],
-    uint cell [[thread_position_in_grid]]
+    const device float *population [[buffer(11)]],
+    const device float *model [[buffer(12)]],
+    device float4 *residualOut [[buffer(13)]],
+    device float4 *velocityOut [[buffer(14)]],
+    constant SimulationUniforms &u [[buffer(15)]],
+    uint slot [[thread_position_in_grid]]
 ) {
-    if (cell >= u.cellCount) return;
-    if (u.physicsEnabled == 0) {
-        residualOut[cell] = float4(0.0f);
-        velocityOut[cell] = float4(0.0f);
+    if (slot >= u.cellCount) return;
+    uint cell = slot % u.baseCellCount;
+    if (population[slot] < 0.5f) {
+        residualOut[slot] = float4(0.0f);
+        velocityOut[slot] = float4(0.0f);
         return;
     }
-    float3 residual = residualIn[cell].xyz;
-    float3 velocity = velocityIn[cell].xyz;
+    if (u.physicsEnabled == 0) {
+        residualOut[slot] = float4(0.0f);
+        velocityOut[slot] = float4(0.0f);
+        return;
+    }
+    float3 residual = residualIn[slot].xyz;
+    float3 velocity = velocityIn[slot].xyz;
     float stiffness = material[cell].y;
     float3 lbsAcceleration = (
-        lbsNext[cell].xyz - 2.0f * lbsCurrent[cell].xyz + lbsPrevious[cell].xyz
+        lbsNext[slot].xyz - 2.0f * lbsCurrent[slot].xyz + lbsPrevious[slot].xyz
     ) * (u.fps * u.fps);
 
     float3 acceleration =
         model[0] * (-stiffness * residual)
         + model[1] * (-sqrt(max(stiffness, 0.0f)) * velocity)
-        + model[2] * u.neighborScale * neighborResidual[cell].xyz
-        + model[3] * neighborVelocity[cell].xyz
+        + model[2] * u.neighborScale * neighborResidual[slot].xyz
+        + model[3] * neighborVelocity[slot].xyz
         + model[4] * (-lbsAcceleration);
 
-    float4 observation = densityScalars[cell];
+    float4 observation = densityScalars[slot];
     float input[5] = {
         clamp(observation.x, -1.0f, 1.0f),
         clamp(observation.y, 0.0f, 1.0f),
@@ -215,8 +283,8 @@ kernel void integrate_flesh(
         coefficient[row] = (1.0f / (1.0f + exp(-value))) * model[5 + row];
     }
     float3 densityAcceleration =
-        coefficient[0] * compressionVector[cell].xyz
-        + coefficient[1] * stretchVector[cell].xyz;
+        coefficient[0] * compressionVector[slot].xyz
+        + coefficient[1] * stretchVector[slot].xyz;
     float densityNorm = length(densityAcceleration);
     if (densityNorm > 1.0e-12f) {
         float capRatio = min(
@@ -234,8 +302,41 @@ kernel void integrate_flesh(
     acceleration += densityAcceleration;
     float3 nextVelocity = velocity + u.dt * acceleration;
     float3 nextResidual = residual + u.dt * nextVelocity;
-    velocityOut[cell] = float4(nextVelocity, 0.0f);
-    residualOut[cell] = float4(nextResidual, 0.0f);
+    velocityOut[slot] = float4(nextVelocity, 0.0f);
+    residualOut[slot] = float4(nextResidual, 0.0f);
+}
+
+struct PopulationUniforms {
+    uint cellCount;
+    uint baseCellCount;
+    uint changeCount;
+    uint activate;
+};
+
+kernel void apply_population_change(
+    const device uint *changeIndices [[buffer(0)]],
+    device float *population [[buffer(1)]],
+    const device float4 *lbsCurrent [[buffer(2)]],
+    const device float4 *lbsSource [[buffer(3)]],
+    device float4 *residualA [[buffer(4)]],
+    device float4 *residualB [[buffer(5)]],
+    device float4 *velocityA [[buffer(6)]],
+    device float4 *velocityB [[buffer(7)]],
+    constant PopulationUniforms &u [[buffer(8)]],
+    uint offset [[thread_position_in_grid]]
+) {
+    if (offset >= u.changeCount) return;
+    uint cell = changeIndices[offset];
+    if (cell >= u.cellCount) return;
+    float4 zero = float4(0.0f);
+    float4 spawn = u.activate != 0
+        ? float4(lbsSource[cell].xyz - lbsCurrent[cell].xyz, 0.0f)
+        : zero;
+    residualA[cell] = spawn;
+    residualB[cell] = spawn;
+    velocityA[cell] = zero;
+    velocityB[cell] = zero;
+    population[cell] = u.activate != 0 ? 1.0f : 0.0f;
 }
 
 struct RenderUniforms {
@@ -245,7 +346,9 @@ struct RenderUniforms {
     float baseRadius;
     float radiusMultiplier;
     float opacity;
-    uint cellCount;
+    uint baseCellCount;
+    uint renderCount;
+    uint layerCount;
 };
 
 struct VertexOut {
@@ -263,16 +366,20 @@ vertex VertexOut splat_vertex(
     const device float4 *material [[buffer(2)]],
     const device uchar4 *colors [[buffer(3)]],
     const device uint *renderOrder [[buffer(4)]],
-    constant RenderUniforms &u [[buffer(5)]]
+    const device float *population [[buffer(5)]],
+    constant RenderUniforms &u [[buffer(6)]]
 ) {
     const float2 corners[6] = {
         float2(-1.0f, -1.0f), float2(1.0f, -1.0f), float2(1.0f, 1.0f),
         float2(-1.0f, -1.0f), float2(1.0f, 1.0f), float2(-1.0f, 1.0f)
     };
-    uint cell = renderOrder[min(instanceID, u.cellCount - 1)];
+    uint orderIndex = min(instanceID / u.layerCount, u.renderCount - 1);
+    uint layer = instanceID % u.layerCount;
+    uint cell = renderOrder[orderIndex];
+    uint slot = layer * u.baseCellCount + cell;
     float2 corner = corners[vertexID];
     float radius = u.baseRadius * u.radiusMultiplier * material[cell].w * 2.7f;
-    float3 center = lbsCurrent[cell].xyz + residual[cell].xyz;
+    float3 center = lbsCurrent[slot].xyz + residual[slot].xyz;
     float3 world = center
         + u.cameraRight.xyz * corner.x * radius
         + u.cameraUp.xyz * corner.y * radius;
@@ -280,7 +387,7 @@ vertex VertexOut splat_vertex(
     output.position = u.viewProjection * float4(world, 1.0f);
     output.local = corner * 2.7f;
     output.color = float4(colors[cell]) / 255.0f;
-    output.opacity = u.opacity;
+    output.opacity = u.opacity * population[slot];
     return output;
 }
 
