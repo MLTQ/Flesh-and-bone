@@ -57,9 +57,9 @@ command-buffer GPU intervals and exclude window presentation.
 
 | Cells | Median GPU ms/frame | Five-run range | 30 Hz headroom | RMS residual after 180 | Max residual |
 | ---: | ---: | ---: | ---: | ---: | ---: |
-| 13,273 | 0.467 | 0.464–0.542 | 71.38× | 18.954 mm | 124.611 mm |
-| 35,527 | 1.160 | 1.155–1.168 | 28.74× | 18.445 mm | 128.244 mm |
-| 91,979 | 2.856 | 2.818–2.878 | 11.67× | 17.908 mm | 131.146 mm |
+| 13,273 | 0.465 | 0.463–0.533 | 71.68× | 18.954 mm | 124.611 mm |
+| 35,527 | 1.151 | 1.150–1.174 | 28.96× | 18.445 mm | 128.244 mm |
+| 91,979 | 2.810 | 2.808–3.985 | 11.86× | 17.908 mm | 131.146 mm |
 
 All states were finite. The residual magnitudes are the intended visible
 secondary motion relative to LBS, not error against a teacher in this runtime
@@ -67,9 +67,11 @@ test.
 
 Compute cost is close to linear in allocated slots. Preallocating the dormant
 reserve raises the ultra-profile median from the previous source-capable
-2.619 ms to 2.856 ms because kernels visit 184k slots, although inactive slots
+2.619 ms to 2.810 ms because kernels visit 184k slots, although inactive slots
 exit early from observation and integration. The active baseline's numerical
-result is unchanged. At 92k reference cells, compute consumes roughly 8.6% of
+result is unchanged. Two of five ultra runs showed transient 3.9 ms outliers,
+but even the worst retained 8.4× real-time headroom. At 92k reference cells,
+median compute consumes roughly 8.4% of
 a 33.3 ms 30 Hz frame budget on this laptop GPU. A discrete 4090-class GPU is
 unnecessary for inference; it remains useful for training and large
 experimental sweeps.
