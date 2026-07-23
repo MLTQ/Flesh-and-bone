@@ -5,6 +5,8 @@ __pycache__/
 *.egg-info/
 dist/
 build/
+.build/
+runtime/Assets/
 
 # Generated run artifacts are ignored by default; curated evidence can be
 # force-added intentionally after review.

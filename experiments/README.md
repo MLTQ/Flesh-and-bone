@@ -351,6 +351,29 @@ Before opening the final suite, that gate was changed to preserve the teacher
 profile within ±10%; the original failure is retained. No mechanics, prompt,
 seed, or other threshold changed.
 
+## Native runtime lab — deployment and scaling instrument
+
+**Question:** Can the frozen H6C + H7C mechanics and 92k-cell textured body run
+comfortably in real time on an ordinary laptop GPU, and can physical resolution
+be varied independently from visual splat count and radius?
+
+**Protocol:** Export versioned native body/model binaries, reproduce the exact
+30 Hz LBS acceleration and four 120 Hz physics substeps in Metal, compare a
+180-frame rollout numerically with PyTorch, then time compute and canonical
+depth-sorted splat rendering independently. The app exposes all three physical
+graphs plus visual-only LOD controls and two globally broadcast motion scalars.
+
+**Status:** complete as a runtime instrument. All three profiles remain finite;
+the Metal and PyTorch 13k results agree to displayed precision after 180 frames.
+On the development M1 Pro, the 92k model has substantial 30 Hz headroom. See
+[`RUNTIME_LAB.md`](RUNTIME_LAB.md) for exact measurements and limitations.
+
+**Decision:** keep the sparse native runtime and use it to choose deployment
+budgets. It does not establish learned locomotion: the skeleton still replays a
+tracked walk. The next controller boundary should accept a low-rate semantic
+intent and return continuous joint targets, allowing a physics/RL policy to
+replace playback while leaving flesh mechanics unchanged.
+
 ## Interpretation discipline
 
 - H0 validates mechanics and instrumentation, not neural self-organization.

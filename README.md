@@ -329,6 +329,43 @@ experiments/         immutable run artifacts and research notes
 Every source file has a companion Markdown file documenting its purpose and
 contracts. `experiments/README.md` is the chronological research ledger.
 
+## Native Flesh & Bone Lab
+
+`FleshAndBoneLab` is a small AppKit/Metal application for running the frozen
+H6C + H7C particle mechanics without Python or PyTorch. It can hot-swap among
+the 13k, 35k, and 92k physical graphs and independently vary rendered-cell
+count, Gaussian radius, and opacity. Live GPU timings distinguish NCA compute
+from splat rendering.
+
+The distinction between the controls is intentional:
+
+- **Physical profile** replaces the fixed-neighbor graph and changes simulation
+  cost, spatial resolution, and dynamic-state memory.
+- **Rendered cells** uniformly subsamples the same simulated body, so it tests
+  visual LOD and draw cost without changing the physics.
+- **Splat radius and opacity** affect coverage and fragment cost only.
+- **Speed and intensity** are globally broadcast motion-intent placeholders.
+  The current motion source is the tracked 29-frame walk, not a generated
+  Kimodo clip or a learned skeleton controller.
+
+Build a self-contained app and launch it with:
+
+```bash
+scripts/make_flesh_app.sh
+open dist/FleshAndBoneLab.app
+```
+
+The release executable also exposes reproducible headless checks:
+
+```bash
+.build/release/FleshAndBoneLab --benchmark 180
+.build/release/FleshAndBoneLab --render-benchmark
+.build/release/FleshAndBoneLab --render-test /tmp/flesh-native.png
+```
+
+See [`experiments/RUNTIME_LAB.md`](experiments/RUNTIME_LAB.md) for numerical
+parity, resource measurements, and the controller roadmap.
+
 ## Running the experiments
 
 Python 3.11+ with PyTorch, NumPy, and Pillow is required.
