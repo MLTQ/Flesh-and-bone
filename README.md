@@ -275,6 +275,32 @@ range; H6C also passes. See [`experiments/H6M.md`](experiments/H6M.md),
 [`experiments/H6C.md`](experiments/H6C.md), and
 [`experiments/H6K.md`](experiments/H6K.md).
 
+## Experiments H7/H7B/H7C/H7D: bounded nonlinear density mechanics
+
+H7 adds LBS-relative local compression pressure and weaker stretch cohesion to
+the frozen H6C backbone. A small invariant MLP predicts only two nonnegative,
+bounded coefficients multiplying explicit equivariant vectors; a smooth norm
+cap limits density acceleration to `12 m/s²`. The learner cannot invent force
+direction or replace the stable linear mechanics.
+
+The first two qualifications are retained as failures because the new force was
+too weak to satisfy the predeclared non-vacuity floor. H7C's scale-only successor
+passes qualification and the severe independent fast holdout. Across three
+seeds, 20-cycle fast RMS falls from `4.010 mm` for the density-blind backbone to
+`0.117–0.119 mm`, with all safety and causal gates passing.
+
+Untouched Kimodo is accurate and stable but strictly fails H7C because its
+backbone error is only `0.0969 mm`, below the fixed `0.2 mm` floor. H7D keeps all
+checkpoints frozen and replays that clip at a predeclared 2x temporal rate. The
+backbone error becomes `0.477 mm`; frozen hybrids remain near `0.001 mm` and all
+original gates pass. This localizes the untouched failure to insufficient
+excitation, not incompatible external-motion semantics. H7D is a controlled
+stress of an already opened clip, not a second semantic holdout. See
+[`experiments/H7.md`](experiments/H7.md),
+[`experiments/H7B.md`](experiments/H7B.md),
+[`experiments/H7C.md`](experiments/H7C.md), and
+[`experiments/H7D.md`](experiments/H7D.md).
+
 ## Repository layout
 
 ```text
@@ -302,6 +328,12 @@ python scripts/run_h5.py --device cuda
 python scripts/run_h6m.py --device cuda
 python scripts/run_h6c.py --device cuda
 python scripts/run_h6k.py --device cuda
+python scripts/run_h7.py qualification --profile h7c --device cuda \
+  --output experiments/runs/h7c_initial
+python scripts/run_h7.py final --profile h7c --device cuda \
+  --output experiments/runs/h7c_initial
+python scripts/run_h7d.py --device cuda
+python scripts/render_h7_comparison.py --device cuda
 ```
 
 Apple Silicon can use `--device mps`; CUDA can use `--device cuda`. The runner
@@ -335,9 +367,14 @@ uses deterministic seeds and records the resolved configuration in its JSON.
     state generalizes when the rule preserves restoring/damping structure.
 11. **H6K — Kimodo ecological motion (complete):** validate generated pose,
     canonical retarget, dense skinning, and supported-range MLP generalization.
-12. **H7 — bounded hybrid mechanics:** retain the stable constitutive backbone
-    and learn only a bounded residual against a richer contact/density/
-    incompressibility teacher.
+12. **H7/H7B — bounded density calibration (complete, failed strictly):** retain
+    honest failures where the nonlinear mechanism is too weak to be causal.
+13. **H7C — bounded hybrid mechanics (complete, mixed strict verdict):** pass
+    qualification and the severe independent fast holdout; fail only the
+    untouched Kimodo non-vacuity gate.
+14. **H7D — frozen Kimodo excitation audit (complete):** show ecological
+    stability on the untouched clip and full causal benefit at 2x temporal
+    excitation without retraining.
 
 The project should reject the particle representation if stable density,
 negative-space preservation, and articulated tracking require effectively

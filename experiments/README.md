@@ -266,6 +266,67 @@ MLPs reach `0.108–0.159 mm` RMS and under `3.5 mm` maximum. Kimodo feature
 magnitudes are far below the failed fast arm, showing that new pose semantics
 generalize when acceleration remains supported. See [`H6K.md`](H6K.md).
 
+## H7 — bounded hybrid density mechanics
+
+**Question:** Can the frozen H6C constitutive backbone acquire local nonlinear
+compression pressure and stretch cohesion through a bounded invariant residual,
+while remaining stable on severe and externally generated motion?
+
+**Protocol:** A synthetic density teacher adds clipped LBS-relative edge-strain
+forces capped at `12 m/s²`. A small MLP predicts only two bounded nonnegative
+coefficients multiplying explicit equivariant vectors. Replay, reverse, and
+walk-then-hold train the residual; half speed seed 7 qualifies it; fast and
+Kimodo motions remain untouched final holdouts. See [`H7.md`](H7.md).
+
+**Status:** initial qualification **failed as vacuous**. The hybrid learned the
+new force accurately and remained stable, but teacher density RMS and backbone
+error fell below their predeclared nontriviality floors. Final holdouts stayed
+sealed. See [`H7.md`](H7.md).
+
+## H7B — non-vacuous bounded density mechanics
+
+**Question:** Does the same bounded architecture still learn and remain stable
+when the nonlinear density term is large enough to matter?
+
+**Protocol:** Scale only pressure/cohesion and their learned maxima by 8x, based
+on H7's measured half-speed shortfall. Keep the strain definition, 12 m/s² cap,
+architecture, optimizer, split, and every gate unchanged. See
+[`H7B.md`](H7B.md).
+
+**Status:** qualification **failed one non-vacuity gate**. Density force became
+nontrivial and every other gate passed, but backbone error was `0.1438 mm`
+against the unchanged `0.2 mm` floor. Final holdouts stayed sealed. See
+[`H7B.md`](H7B.md).
+
+## H7C — capped non-vacuous density mechanics
+
+**Question:** Can a 24x-original density scale clear H7's fixed non-vacuity
+floor while the unchanged smooth acceleration cap preserves stability?
+
+**Protocol:** Scale only the teacher coefficients and learned maxima to 3x H7B.
+All features, dead zones, architecture, optimizer, splits, gates, and the 12
+m/s² cap remain unchanged. See [`H7C.md`](H7C.md).
+
+**Status:** strict aggregate **fail**. Qualification and the severe fast holdout
+pass all seeds, with fast error falling from `4.010 mm` backbone RMS to
+`0.117–0.119 mm`. Untouched Kimodo is stable and nearly exact but fails only the
+fixed non-vacuity gate: its backbone error is `0.0969 mm`. See
+[`H7C.md`](H7C.md).
+
+## H7D — frozen Kimodo excitation audit
+
+**Question:** Is H7C's Kimodo failure a missing generalization capability or
+simply insufficient nonlinear excitation?
+
+**Protocol:** Keep H7C checkpoints frozen. Treat untouched Kimodo as a stability
+arm and deterministically resample the same clip from 58 to 29 phases for a 2x
+temporal stress that must pass every original H7 gate. See [`H7D.md`](H7D.md).
+
+**Status:** complete; **pass**. Untouched Kimodo passes ecological stability. At
+2x speed the backbone error becomes a non-vacuous `0.477 mm`, while all frozen
+hybrids remain near `0.001 mm` and pass every original H7 gate. See
+[`H7D.md`](H7D.md).
+
 ## Interpretation discipline
 
 - H0 validates mechanics and instrumentation, not neural self-organization.
